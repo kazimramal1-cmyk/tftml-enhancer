@@ -1,6 +1,7 @@
 # ================================================================
-#  frontend_streamlit.py — TFTML ENHANCER AI v2
-#  Visual upgrade: vinyl logo, rainbow title, confetti, spinner
+#  frontend_streamlit.py — TFTML ENHANCER AI
+#  K. Ağayev adına Biləsuvar Şəhər Texniki Fənlər
+#  Təmayüllü İnternat Tipli Məktəb-Lisey
 # ================================================================
 
 import streamlit as st
@@ -18,101 +19,148 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
 
 #MainMenu,footer,header,.stDeployButton,[data-testid="stToolbar"]{display:none!important}
-.stApp{background:#0d0d0d!important;font-family:'DM Sans',sans-serif!important}
+.stApp{background:#0d0f0e!important;font-family:'DM Sans',sans-serif!important}
 .block-container{max-width:860px!important;padding:2rem 1.5rem!important;margin:0 auto!important}
 
-/* ── Vinyl logo ── */
-.vinyl-wrap{display:flex;justify-content:center;margin:1.5rem 0 .5rem}
-.vinyl{width:130px;height:130px;border-radius:50%;object-fit:cover;
-  animation:vinylSpin 4s linear infinite;
-  box-shadow:0 0 0 6px #1a1a1a,0 0 0 10px #e07020,0 0 0 14px #1a1a1a,0 0 40px rgba(224,112,32,.5);
-  cursor:pointer}
-.vinyl:hover{animation-play-state:paused;box-shadow:0 0 0 6px #1a1a1a,0 0 0 10px #2d9e4a,0 0 0 14px #1a1a1a,0 0 60px rgba(45,158,74,.7)}
-@keyframes vinylSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+/* ── Arxa fon gradient ── */
+.stApp::before{content:'';position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(ellipse at 15% 40%,rgba(26,107,47,.12) 0%,transparent 55%),
+    radial-gradient(ellipse at 85% 20%,rgba(224,112,32,.10) 0%,transparent 55%),
+    radial-gradient(ellipse at 50% 90%,rgba(26,107,47,.07) 0%,transparent 50%);
+  pointer-events:none}
 
-/* ── Göyqurşağı başlıq ── */
-.rainbow-title{
-  font-family:'Playfair Display',serif;
-  font-size:clamp(1.4rem,4vw,2.2rem);
-  font-weight:700;
-  text-align:center;
-  background:linear-gradient(90deg,#ff0080,#ff8c00,#ffe100,#00ff88,#00cfff,#a855f7,#ff0080);
-  background-size:300% 100%;
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
-  animation:rainbowShift 3s linear infinite;
-  letter-spacing:.06em;
-  margin:.3rem 0
+/* ── Logo — sabit, glow effekti ── */
+.logo-wrap{display:flex;justify-content:center;margin:2rem 0 .8rem}
+.logo-img{
+  width:124px;height:124px;border-radius:50%;object-fit:cover;
+  box-shadow:
+    0 0 0 3px #0d0f0e,
+    0 0 0 5px #1a6b2f,
+    0 0 0 7px #0d0f0e,
+    0 0 25px rgba(26,107,47,.55),
+    0 0 55px rgba(224,112,32,.25),
+    0 0 90px rgba(26,107,47,.15);
+  animation:glowPulse 3s ease-in-out infinite
 }
-@keyframes rainbowShift{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+@keyframes glowPulse{
+  0%,100%{box-shadow:0 0 0 3px #0d0f0e,0 0 0 5px #1a6b2f,0 0 0 7px #0d0f0e,0 0 25px rgba(26,107,47,.55),0 0 55px rgba(224,112,32,.25),0 0 90px rgba(26,107,47,.15)}
+  50%{box-shadow:0 0 0 3px #0d0f0e,0 0 0 5px #e07020,0 0 0 7px #0d0f0e,0 0 30px rgba(224,112,32,.6),0 0 65px rgba(26,107,47,.3),0 0 110px rgba(224,112,32,.18)}
+}
 
-/* ── Məktəb adı ── */
-.sname{text-align:center;font-size:.95rem;color:#ccc;line-height:1.6;margin:.2rem 0}
-.sname span{color:#e07020;font-weight:600}
-.ssub{text-align:center;font-size:.65rem;color:#555;letter-spacing:.14em;text-transform:uppercase;margin-bottom:1.5rem}
+/* ── Başlıq ── */
+.main-title{
+  font-family:'Playfair Display',serif;font-size:clamp(1.3rem,3.5vw,2rem);
+  font-weight:700;text-align:center;color:#f0f0f0;letter-spacing:.05em;
+  margin:.2rem 0 .1rem
+}
+.main-title span{color:#e07020}
+.sname{text-align:center;font-size:.88rem;color:#888;line-height:1.65;margin:.1rem 0}
+.sname b{color:#bbb}
+.ssub{text-align:center;font-size:.63rem;color:#444;letter-spacing:.16em;
+  text-transform:uppercase;margin-bottom:1.8rem}
 
-/* ── Kartlar ── */
-.card{background:#1a1a1a;border-radius:20px;border:1.5px solid #2a2a2a;padding:1.8rem;margin-bottom:1.4rem;box-shadow:0 2px 28px rgba(0,0,0,.4)}
+/* ── Status barlar ── */
+.status-ok{background:linear-gradient(135deg,#0a1f10,#0d2b15);
+  border:1px solid #1a6b2f;border-radius:12px;
+  padding:.6rem 1.2rem;font-size:.8rem;color:#4dff88;font-weight:600;
+  margin-bottom:1.2rem;display:flex;align-items:center;gap:.6rem}
+.status-err{background:linear-gradient(135deg,#1f0a0a,#2b0d0d);
+  border:1px solid #6b1a1a;border-radius:12px;
+  padding:.6rem 1.2rem;font-size:.8rem;color:#ff6b6b;font-weight:600;
+  margin-bottom:1.2rem;display:flex;align-items:center;gap:.6rem}
 
-/* ── Upload ── */
-[data-testid="stFileUploader"]{border:2px dashed #2a2a2a!important;border-radius:16px!important;background:#111!important}
-[data-testid="stFileUploader"]:hover{border-color:#e07020!important}
-[data-testid="stFileUploader"] *{color:#aaa!important}
+/* ── Kart ── */
+.card{background:linear-gradient(145deg,#131613,#111311);
+  border-radius:20px;border:1.5px solid #1e251e;
+  padding:1.8rem;margin-bottom:1.4rem;
+  box-shadow:0 4px 40px rgba(0,0,0,.5)}
 
-/* ── Düymə — hover glow + böyümə ── */
+/* ── Upload zona — rəngli çərçivə ── */
+[data-testid="stFileUploader"]{
+  border:2px dashed transparent!important;
+  border-radius:18px!important;
+  background:linear-gradient(#131613,#131613) padding-box,
+             linear-gradient(135deg,#1a6b2f,#e07020,#1a6b2f) border-box!important;
+  padding:1.2rem!important;
+  transition:all .3s!important
+}
+[data-testid="stFileUploader"]:hover{
+  background:linear-gradient(#0f1a0f,#0f1a0f) padding-box,
+             linear-gradient(135deg,#2d9e4a,#f59030,#2d9e4a) border-box!important;
+  box-shadow:0 0 20px rgba(26,107,47,.2),0 0 40px rgba(224,112,32,.1)!important
+}
+[data-testid="stFileUploader"] *{color:#888!important}
+[data-testid="stFileUploader"] svg{fill:#e07020!important}
+[data-testid="stFileUploader"] button{
+  background:linear-gradient(135deg,#1a6b2f,#2d9e4a)!important;
+  color:#fff!important;border:none!important;border-radius:8px!important
+}
+
+/* ── Əsas düymə ── */
 .stButton>button{
-  font-family:'DM Sans',sans-serif!important;font-weight:700!important;font-size:1rem!important;
+  font-family:'DM Sans',sans-serif!important;font-weight:700!important;
+  font-size:1rem!important;
   background:linear-gradient(135deg,#1a6b2f,#2d9e4a)!important;
   color:#fff!important;border:none!important;border-radius:14px!important;
   padding:1rem 2rem!important;width:100%!important;
   box-shadow:0 4px 22px rgba(26,107,47,.4)!important;
-  transition:transform .2s, box-shadow .2s!important;
-  letter-spacing:.03em!important
+  transition:transform .2s,box-shadow .2s!important;letter-spacing:.03em!important
 }
 .stButton>button:hover{
-  transform:scale(1.045) translateY(-2px)!important;
-  box-shadow:0 8px 36px rgba(45,158,74,.65),0 0 20px rgba(224,112,32,.3)!important
+  transform:scale(1.04) translateY(-2px)!important;
+  box-shadow:0 8px 36px rgba(45,158,74,.6),0 0 18px rgba(224,112,32,.25)!important
 }
+.stButton>button:disabled{opacity:.35!important}
 
 /* ── Progress ── */
-.stProgress>div>div{background:linear-gradient(90deg,#1a6b2f,#e07020,#ff0080)!important;border-radius:3px!important}
+.stProgress>div>div{
+  background:linear-gradient(90deg,#1a6b2f,#e07020)!important;
+  border-radius:3px!important
+}
 
 /* ── Şəkillər ── */
-[data-testid="stImage"] img{border-radius:12px!important;border:1.5px solid #2a2a2a!important;width:100%!important}
+[data-testid="stImage"] img{
+  border-radius:14px!important;
+  border:1.5px solid #1e251e!important;
+  width:100%!important
+}
 
 /* ── Badgelər ── */
-.badge{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.22rem .6rem;border-radius:5px;margin-bottom:.4rem}
-.b-orig{background:rgba(120,120,120,.5);color:#ccc;border:1px solid #444}
-.b-enh{background:rgba(26,107,47,.7);color:#7dffaa;border:1px solid #2d9e4a}
-.b-4x{background:linear-gradient(135deg,#e07020,#f59030);color:#fff;font-size:.62rem;font-weight:700;letter-spacing:.1em;padding:.24rem .7rem;border-radius:20px}
-
-/* ── Status ── */
-.status-ok{background:#0d2b15;border:1px solid #1a6b2f;border-radius:10px;padding:.55rem 1rem;font-size:.78rem;color:#4dff88;font-weight:600;margin-bottom:1rem}
-.status-err{background:#2b0d0d;border:1px solid #6b1a1a;border-radius:10px;padding:.55rem 1rem;font-size:.78rem;color:#ff6b6b;font-weight:600;margin-bottom:1rem}
-
-/* ── Spinner mesajı ── */
-.spin-msg{text-align:center;font-size:1.1rem;font-weight:600;
-  background:linear-gradient(90deg,#e07020,#2d9e4a,#00cfff);
-  background-size:200% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;animation:rainbowShift 2s linear infinite;
-  margin:1rem 0}
+.badge{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;padding:.22rem .6rem;border-radius:5px;margin-bottom:.4rem}
+.b-orig{background:rgba(80,80,80,.3);color:#aaa;border:1px solid #333}
+.b-enh{background:rgba(26,107,47,.4);color:#4dff88;border:1px solid #1a6b2f}
+.b-4x{background:linear-gradient(135deg,#e07020,#f59030);color:#fff;
+  font-size:.62rem;font-weight:700;letter-spacing:.1em;
+  padding:.24rem .7rem;border-radius:20px}
 
 /* ── Endir düymələri ── */
-.stDownloadButton>button{font-family:'DM Sans',sans-serif!important;font-weight:600!important;
-  font-size:.85rem!important;border-radius:11px!important;padding:.6rem 1.2rem!important;
-  width:100%!important;transition:all .2s!important;background:#1a1a1a!important;
-  border:1.5px solid #2a2a2a!important;color:#ccc!important}
-.stDownloadButton>button:hover{border-color:#2d9e4a!important;color:#4dff88!important;transform:translateY(-1px)!important}
+.stDownloadButton>button{
+  font-family:'DM Sans',sans-serif!important;font-weight:600!important;
+  font-size:.85rem!important;border-radius:11px!important;
+  padding:.65rem 1.2rem!important;width:100%!important;
+  background:#111!important;border:1.5px solid #1e251e!important;
+  color:#aaa!important;transition:all .2s!important
+}
+.stDownloadButton>button:hover{
+  border-color:#2d9e4a!important;color:#4dff88!important;
+  transform:translateY(-1px)!important;
+  box-shadow:0 4px 16px rgba(26,107,47,.25)!important
+}
 
-/* ── Ulduzlar arxa fon ── */
-.stApp::before{content:'';position:fixed;inset:0;z-index:0;
-  background:radial-gradient(ellipse at 20% 50%,rgba(26,107,47,.08) 0%,transparent 60%),
-             radial-gradient(ellipse at 80% 20%,rgba(224,112,32,.08) 0%,transparent 60%);
-  pointer-events:none}
+/* ── Spinner mesajı ── */
+.spin-msg{
+  text-align:center;font-size:1rem;font-weight:600;color:#e07020;
+  padding:.8rem;letter-spacing:.02em
+}
+
+/* ── Caption ── */
+[data-testid="stCaptionContainer"]{color:#555!important;font-size:.72rem!important}
 </style>
 """, unsafe_allow_html=True)
 
-# ── Cache ────────────────────────────────────────────────────────
+# ── Cache + API ──────────────────────────────────────────────────
 @st.cache_data(show_spinner=False, max_entries=50)
 def enhance_cached(img_bytes: bytes, api_url: str):
     try:
@@ -137,29 +185,33 @@ def check_api(url):
     except:
         return False
 
-# ── Vinyl Logo + Göyqurşağı Başlıq ─────────────────────────────
+# ── Header ───────────────────────────────────────────────────────
 st.markdown(f"""
-<div class="vinyl-wrap">
-  <img class="vinyl" src="data:image/jpeg;base64,{LOGO_B64}">
+<div class="logo-wrap">
+  <img class="logo-img" src="data:image/jpeg;base64,{LOGO_B64}">
 </div>
-<div class="rainbow-title">TFTML ENHANCER AI</div>
-<div class="sname">K. Ağayev adına <span>Biləsuvar Şəhər</span><br>
-Texniki Fənlər Təmayüllü İnternat Tipli Məktəb-Lisey</div>
+<div class="main-title">TFTML <span>ENHANCER</span> AI</div>
+<div class="sname">
+  K. Ağayev adına <b>Biləsuvar Şəhər</b><br>
+  Texniki Fənlər Təmayüllü İnternat Tipli Məktəb-Lisey
+</div>
 <div class="ssub">AI Şəkil Keyfiyyət Platforması · Real-ESRGAN 4×</div>
 """, unsafe_allow_html=True)
 
-# ── API Status ───────────────────────────────────────────────────
+# ── API Status ────────────────────────────────────────────────────
 api_ok = check_api(API_URL)
 if api_ok:
     st.markdown('<div class="status-ok">✅ Colab Backend — Online · GPU Aktiv</div>', unsafe_allow_html=True)
 else:
     st.markdown('<div class="status-err">⚠️ Colab Backend offline — Colab-ı işə salın və URL-i yeniləyin</div>', unsafe_allow_html=True)
 
-# ── Upload ───────────────────────────────────────────────────────
+# ── Upload ────────────────────────────────────────────────────────
 st.markdown('<div class="card">', unsafe_allow_html=True)
-uploaded = st.file_uploader("📸  Şəkli seçin və ya sürükləyin",
-                             type=["jpg","jpeg","png","webp","bmp"],
-                             label_visibility="visible")
+uploaded = st.file_uploader(
+    "📸  Şəkli seçin və ya sürükləyin",
+    type=["jpg","jpeg","png","webp","bmp"],
+    label_visibility="visible"
+)
 if uploaded:
     c1, c2 = st.columns([2,1])
     with c1:
@@ -168,17 +220,19 @@ if uploaded:
         img_hash = hashlib.md5(uploaded.read()).hexdigest()[:8]
         uploaded.seek(0)
         st.markdown(f"""
-        <div style="padding:.6rem 0;font-size:.82rem;color:#999;line-height:2.2">
-        📄 <b style="color:#ccc">{uploaded.name}</b><br>
-        📦 <b style="color:#ccc">{uploaded.size/1024/1024:.2f} MB</b><br>
-        🔑 <code style="font-size:.7rem;background:#111;padding:.1rem .4rem;border-radius:4px">{img_hash}</code>
+        <div style="padding:.6rem 0;font-size:.82rem;color:#777;line-height:2.2">
+        📄 <span style="color:#bbb">{uploaded.name}</span><br>
+        📦 <span style="color:#bbb">{uploaded.size/1024/1024:.2f} MB</span><br>
+        🔑 <code style="font-size:.7rem;background:#0d0f0e;color:#4dff88;
+            padding:.15rem .45rem;border-radius:4px;border:1px solid #1a6b2f">{img_hash}</code>
         </div>""", unsafe_allow_html=True)
 
-btn = st.button("✨  AI ilə 4× Keyfiyyəti Artır", disabled=not (uploaded and api_ok))
+btn = st.button("✨  AI ilə 4× Keyfiyyəti Artır",
+                disabled=not (uploaded and api_ok))
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Emal ─────────────────────────────────────────────────────────
-SPINNER_MSGS = [
+MSGS = [
     "🚀 AI mühərriki işə düşür...",
     "🧪 Piksellər bərpa olunur...",
     "✨ Möcüzə baş verir...",
@@ -187,43 +241,39 @@ SPINNER_MSGS = [
 ]
 
 if btn and uploaded:
-    img_bytes      = uploaded.read()
-    img_hash_full  = hashlib.md5(img_bytes).hexdigest()
+    img_bytes     = uploaded.read()
+    img_hash_full = hashlib.md5(img_bytes).hexdigest()
 
-    prog     = st.progress(0, "Hazırlanır...")
-    msg_box  = st.empty()
-    stop_spin = [False]
+    prog    = st.progress(0, "Hazırlanır...")
+    msg_box = st.empty()
+    stop    = [False]
 
-    # Dinamik spinner mesajları — ayrı thread
-    def spin_msgs():
+    def spin():
         i = 0
-        while not stop_spin[0]:
-            msg_box.markdown(f'<div class="spin-msg">{SPINNER_MSGS[i % len(SPINNER_MSGS)]}</div>',
+        while not stop[0]:
+            msg_box.markdown(f'<div class="spin-msg">{MSGS[i % len(MSGS)]}</div>',
                              unsafe_allow_html=True)
-            time.sleep(2)
-            i += 1
+            time.sleep(2); i += 1
 
-    t = threading.Thread(target=spin_msgs, daemon=True)
-    t.start()
+    threading.Thread(target=spin, daemon=True).start()
+    prog.progress(20, "Colab-a göndərilir...")
 
-    prog.progress(15, "Colab-a göndərilir...")
     result_bytes, err = enhance_cached(img_bytes, API_URL)
-    stop_spin[0] = True
+    stop[0] = True
     msg_box.empty()
-
     prog.progress(100, "Hazır! 🎉")
 
     if err:
         st.error(f"❌ Xəta: {err}")
     else:
-        # 🎊 Böyük Partlayış!
         st.balloons()
-        st.snow()
 
-        # Cache olub-olmadığını göstər
-        if st.session_state.get(f"done_{img_hash_full}"):
-            st.markdown('<div style="background:#0d1b2b;border:1px solid #1a4a7a;border-radius:8px;padding:.4rem .9rem;font-size:.72rem;color:#5bb3ff;font-weight:600;display:inline-block;margin-bottom:.5rem">⚡ Cache-dən — Colab-a sorğu getmədi</div>', unsafe_allow_html=True)
-        st.session_state[f"done_{img_hash_full}"] = True
+        if st.session_state.get(f"c_{img_hash_full}"):
+            st.markdown("""<div style="background:#0a1520;border:1px solid #1a4a7a;
+              border-radius:8px;padding:.4rem .9rem;font-size:.72rem;color:#5bb3ff;
+              font-weight:600;display:inline-block;margin-bottom:.5rem">
+              ⚡ Cache — Colab-a sorğu getmədi</div>""", unsafe_allow_html=True)
+        st.session_state[f"c_{img_hash_full}"] = True
 
         st.success("🎉 Emal tamamlandı!")
 
@@ -231,17 +281,19 @@ if btn and uploaded:
         result_pil = Image.open(io.BytesIO(result_bytes))
 
         st.markdown("""<div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
-        <span style="font-family:'Playfair Display',serif;font-size:1rem;color:#eee">Nəticə</span>
-        <span class="b-4x">4× Enhanced</span></div>""", unsafe_allow_html=True)
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+          <span style="font-family:'Playfair Display',serif;font-size:1rem;color:#eee">Nəticə</span>
+          <span class="b-4x">4× Enhanced</span></div>""", unsafe_allow_html=True)
 
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown('<p style="text-align:center"><span class="badge b-orig">ORİGİNAL</span></p>', unsafe_allow_html=True)
+            st.markdown('<p style="text-align:center"><span class="badge b-orig">ORİGİNAL</span></p>',
+                        unsafe_allow_html=True)
             st.image(orig_pil, use_container_width=True)
             st.caption(f"📐 {orig_pil.width}×{orig_pil.height} px")
         with c2:
-            st.markdown('<p style="text-align:center"><span class="badge b-enh">4× AI</span></p>', unsafe_allow_html=True)
+            st.markdown('<p style="text-align:center"><span class="badge b-enh">4× AI</span></p>',
+                        unsafe_allow_html=True)
             st.image(result_pil, use_container_width=True)
             st.caption(f"📐 {result_pil.width}×{result_pil.height} px")
 
