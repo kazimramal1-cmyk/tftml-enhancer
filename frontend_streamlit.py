@@ -79,23 +79,7 @@ st.markdown("""
   box-shadow:0 8px 36px rgba(45,158,74,.6),0 0 18px rgba(224,112,32,.25)!important}
 .stButton>button:disabled{opacity:.35!important}
 
-/* Slider müqayisə */
-.slider-container{position:relative;width:100%;user-select:none;border-radius:14px;overflow:hidden;
-  border:1.5px solid #1e251e;cursor:col-resize}
-.slider-before,.slider-after{position:absolute;top:0;left:0;width:100%;height:100%}
-.slider-after{clip-path:inset(0 50% 0 0)}
-.slider-line{position:absolute;top:0;left:50%;width:3px;height:100%;
-  background:linear-gradient(180deg,#e07020,#2d9e4a);transform:translateX(-50%);z-index:10}
-.slider-handle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:44px;height:44px;border-radius:50%;
-  background:linear-gradient(135deg,#e07020,#2d9e4a);
-  border:3px solid #fff;z-index:11;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 2px 16px rgba(0,0,0,.5);cursor:col-resize}
-.slider-handle::before{content:'◀▶';font-size:.55rem;color:#fff;letter-spacing:-.1em}
-.slider-label-l,.slider-label-r{position:absolute;bottom:10px;padding:.2rem .6rem;
-  border-radius:5px;font-size:.6rem;font-weight:700;letter-spacing:.08em;z-index:12}
-.slider-label-l{left:10px;background:rgba(80,80,80,.8);color:#ddd}
-.slider-label-r{right:10px;background:rgba(26,107,47,.85);color:#4dff88}
+
 
 /* Batch item */
 .batch-item{background:#0f1510;border:1px solid #1e251e;border-radius:12px;
@@ -111,6 +95,8 @@ st.markdown("""
 .spin-msg{text-align:center;font-size:1rem;font-weight:600;color:#e07020;padding:.8rem;letter-spacing:.02em}
 .badge{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;padding:.22rem .6rem;border-radius:5px;margin-bottom:.4rem}
+.b-orig{background:rgba(80,80,80,.3);color:#aaa;border:1px solid #333}
+.b-enh{background:rgba(26,107,47,.4);color:#4dff88;border:1px solid #1a6b2f}
 .b-4x{background:linear-gradient(135deg,#e07020,#f59030);color:#fff;font-size:.62rem;
   font-weight:700;letter-spacing:.1em;padding:.24rem .7rem;border-radius:20px}
 .stDownloadButton>button{font-family:'DM Sans',sans-serif!important;font-weight:600!important;
@@ -121,33 +107,7 @@ st.markdown("""
 [data-testid="stCaptionContainer"]{color:#555!important;font-size:.72rem!important}
 </style>
 
-<script>
-// Slider interaktivliyi
-function initSlider(container) {
-  if (!container) return;
-  const line   = container.querySelector('.slider-line');
-  const handle = container.querySelector('.slider-handle');
-  const after  = container.querySelector('.slider-after');
-  let dragging = false;
 
-  function setPos(x) {
-    const rect = container.getBoundingClientRect();
-    let pct = Math.min(Math.max((x - rect.left) / rect.width * 100, 2), 98);
-    line.style.left = handle.style.left = pct + '%';
-    after.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
-  }
-
-  container.addEventListener('mousedown',  e => { dragging = true; setPos(e.clientX); });
-  document.addEventListener('mousemove',   e => { if (dragging) setPos(e.clientX); });
-  document.addEventListener('mouseup',     () => dragging = false);
-  container.addEventListener('touchstart', e => { dragging = true; setPos(e.touches[0].clientX); });
-  document.addEventListener('touchmove',   e => { if (dragging) setPos(e.touches[0].clientX); });
-  document.addEventListener('touchend',    () => dragging = false);
-}
-setTimeout(() => {
-  document.querySelectorAll('.slider-container').forEach(initSlider);
-}, 500);
-</script>
 """, unsafe_allow_html=True)
 
 # ── Cache + API ──────────────────────────────────────────────────
@@ -177,36 +137,7 @@ def check_api(url):
     except:
         return False
 
-def img_to_b64_str(pil_img):
-    buf = io.BytesIO()
-    pil_img.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode()
 
-def render_slider(orig_pil, result_pil):
-    """Sürüşdürmə müqayisə komponenti"""
-    o_b64 = img_to_b64_str(orig_pil)
-    r_b64 = img_to_b64_str(result_pil)
-    h     = max(300, min(500, int(orig_pil.height * 400 / orig_pil.width)))
-    st.markdown(f"""
-    <div class="slider-container" style="height:{h}px">
-      <img class="slider-before" src="data:image/png;base64,{o_b64}"
-           style="object-fit:cover;width:100%;height:100%">
-      <div class="slider-after" style="clip-path:inset(0 50% 0 0)">
-        <img src="data:image/png;base64,{r_b64}"
-             style="object-fit:cover;width:100%;height:100%;position:absolute;top:0;left:0">
-      </div>
-      <div class="slider-line"></div>
-      <div class="slider-handle"></div>
-      <span class="slider-label-l">ORİGİNAL</span>
-      <span class="slider-label-r">4× AI</span>
-    </div>
-    <script>
-      setTimeout(()=>{{
-        const c = document.querySelector('.slider-container');
-        if(c) initSlider(c);
-      }},200);
-    </script>
-    """, unsafe_allow_html=True)
 
 # ── Header ───────────────────────────────────────────────────────
 st.markdown(f"""
@@ -297,13 +228,15 @@ if "Tək" in mode:
               Sürüşdürərək müqayisə edin</span>
               <span class="b-4x">4× Enhanced</span></div>""", unsafe_allow_html=True)
 
-            render_slider(orig_pil, result_pil)
-
-            st.markdown(f"""<div style="display:flex;justify-content:space-between;
-              padding:.7rem 0;font-size:.75rem;color:#555">
-              <span>📐 Orijinal: {orig_pil.width}×{orig_pil.height} px</span>
-              <span style="color:#4dff88">📐 AI: {result_pil.width}×{result_pil.height} px</span>
-              </div>""", unsafe_allow_html=True)
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown('<p style="text-align:center"><span class="badge b-orig">ORİGİNAL</span></p>', unsafe_allow_html=True)
+                st.image(orig_pil, use_container_width=True)
+                st.caption(f"📐 {orig_pil.width}×{orig_pil.height} px")
+            with c2:
+                st.markdown('<p style="text-align:center"><span class="badge b-enh">4× AI</span></p>', unsafe_allow_html=True)
+                st.image(result_pil, use_container_width=True)
+                st.caption(f"📐 {result_pil.width}×{result_pil.height} px")
 
             d1, d2 = st.columns(2)
             with d1:
