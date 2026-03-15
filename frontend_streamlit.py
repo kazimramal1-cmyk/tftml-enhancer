@@ -114,9 +114,11 @@ def enhance_cached(file_bytes: bytes, fname: str, api_url: str):
             "png": "image/png", "webp": "image/webp", "bmp": "image/bmp"
         }
         mime = mime_map.get(ext, "application/octet-stream")
+        # Fayl adında extension mütləq olsun ki backend tanısın
+        safe_fname = fname if "." in fname else f"{fname}.{ext}"
         resp = requests.post(
             f"{api_url}/enhance",
-            files={"image": (fname, file_bytes, mime)},
+            files={"image": (safe_fname, file_bytes, mime)},
             timeout=600,
             headers={"bypass-tunnel-reminder": "yes", "ngrok-skip-browser-warning": "true"}
         )
