@@ -105,36 +105,51 @@ video{border-radius:14px!important;border:1.5px solid #1e251e!important;width:10
 # ── Köməkçi funksiyalar ──────────────────────────────────────────
 @st.cache_data(show_spinner=False, max_entries=100)
 def enhance_cached(file_bytes: bytes, fname: str, api_url: str):
+    """Şəkil emalı - /enhance endpoint"""
     try:
-        ext = fname.rsplit(".", 1)[-1].lower() if "." in fname else "jpg"
-        mime_map = {
-            "mp4": "video/mp4", "mov": "video/quicktime",
-            "avi": "video/x-msvideo", "mkv": "video/x-matroska",
-            "jpg": "image/jpeg", "jpeg": "image/jpeg",
-            "png": "image/png", "webp": "image/webp", "bmp": "image/bmp"
-        }
-        mime = mime_map.get(ext, "application/octet-stream")
-        # Fayl adında extension mütləq olsun ki backend tanısın
-        safe_fname = fname if "." in fname else f"{fname}.{ext}"
         resp = requests.post(
             f"{api_url}/enhance",
-            files={"image": (safe_fname, file_bytes, mime)},
-            timeout=600,
-            headers={"bypass-tunnel-reminder": "yes", "ngrok-skip-browser-warning": "true"}
+            files={"image": (fname, file_bytes, "image/png")},
+            timeout=300,
+            headers={"bypass-tunnel-reminder":"yes","ngrok-skip-browser-warning":"true"}
         )
-        try:
-            data = resp.json()
-        except Exception:
-            return None, None, {}, f"Server cavabı parse olunmadı (status: {resp.status_code}): {resp.text[:300]}"
+        try: data = resp.json()
+        except: return None,None,{},f"Parse xətası ({resp.status_code}): {resp.text[:200]}"
         if data.get("success"):
             return base64.b64decode(data["image"]), data.get("type","image"), data, None
-        return None, None, {}, data.get("error", f"Backend xətası: {data}")
+        return None,None,{},data.get("error",f"Backend xətası: {data}")
     except requests.exceptions.Timeout:
-        return None, None, {}, "Timeout: Video çox böyükdür və ya backend cavab vermir"
+        return None,None,{},"Timeout xətası"
     except requests.exceptions.ConnectionError:
-        return None, None, {}, "Bağlantı xətası: API_URL yoxlayın"
+        return None,None,{},"Bağlantı xətası: API_URL yoxlayın"
     except Exception as e:
-        return None, None, {}, f"{type(e).__name__}: {str(e)}"
+        return None,None,{},f"{type(e).__name__}: {str(e)}"
+
+@st.cache_data(show_spinner=False, max_entries=20)
+def enhance_video_cached(vid_bytes: bytes, fname: str, api_url: str):
+    """Video emalı - /enhance-video endpoint"""
+    try:
+        ext = fname.rsplit(".",1)[-1].lower() if "." in fname else "mp4"
+        mime_map = {"mp4":"video/mp4","mov":"video/quicktime",
+                    "avi":"video/x-msvideo","mkv":"video/x-matroska"}
+        mime = mime_map.get(ext,"video/mp4")
+        resp = requests.post(
+            f"{api_url}/enhance-video",
+            files={"video": (fname, vid_bytes, mime)},
+            timeout=600,
+            headers={"bypass-tunnel-reminder":"yes","ngrok-skip-browser-warning":"true"}
+        )
+        try: data = resp.json()
+        except: return None,{},f"Parse xətası ({resp.status_code}): {resp.text[:200]}"
+        if data.get("success"):
+            return base64.b64decode(data["image"]), data, None
+        return None,{},data.get("error",f"Backend xətası: {data}")
+    except requests.exceptions.Timeout:
+        return None,{},"Timeout: Video çox böyükdür"
+    except requests.exceptions.ConnectionError:
+        return None,{},"Bağlantı xətası"
+    except Exception as e:
+        return None,{},f"{type(e).__name__}: {str(e)}"
 
 def check_api(url):
     try:
@@ -374,20 +389,18 @@ elif "Video" in mode:
         threading.Thread(target=spin_v, daemon=True).start()
         prog.progress(10, "Video backend-ə göndərilir...")
 
-        result_bytes, rtype, meta, err = enhance_cached(vid_bytes, video_file.name, API_URL)
+        result_bytes, meta, err = enhance_video_cached(vid_bytes, video_file.name, API_URL)
         stop[0]=True; msg_box.empty()
 
         if err:
             prog.progress(100, "Xəta!")
             st.error(f"❌ Xəta: {err}")
-            st.info("💡 Colab Logs-da tam xəta mesajına baxın")
         else:
             prog.progress(100, "Video hazır! 🎉")
             st.balloons()
             st.success(f"🎉 Video uğurla emal edildi! "
-                       f"{meta.get('original_size','?')} → {meta.get('enhanced_size','?')} | "
+                       f"{meta.get('original','?')} → {meta.get('enhanced','?')} | "
                        f"{meta.get('frames','?')} kadr")
-
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.download_button(
                 "⬇  4× Videonu Endir (MP4)", result_bytes,
