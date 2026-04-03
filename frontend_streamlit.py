@@ -10,6 +10,8 @@ import numpy as np
 
 API_URL  = "https://stacie-apertural-ardelia.ngrok-free.dev"
 LOGO_B64 = "logo.png.jpeg"
+
+BACKGROUNDS = {
     "🦕 Dinozavrlar":    "https://images.unsplash.com/photo-1606206873764-fd15e242ff80?w=1280&q=80",
     "🏛️ Big Ben":        "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=1280&q=80",
     "🌌 Kainat":         "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1280&q=80",
