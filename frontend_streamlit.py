@@ -1,11 +1,12 @@
 # ================================================================
-#  frontend_streamlit.py — TFTML ENHANCER AI v6
+#  frontend_streamlit.py — TFTML ENHANCER AI
 #  RAMAL KAZIMZADE | Şəkil + Inpainting + Video
+#  Python 3.14 uyğun — xarici canvas yoxdur
 # ================================================================
 
 import streamlit as st
 import requests, base64, hashlib, io, time, threading
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageDraw
 import numpy as np
 
 API_URL  = "https://stacie-apertural-ardelia.ngrok-free.dev"
@@ -30,76 +31,50 @@ st.set_page_config(page_title="TFTML ENHANCER AI", page_icon="🎓",
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
-
 #MainMenu,footer,header,.stDeployButton,[data-testid="stToolbar"]{display:none!important}
 .stApp{background:#0d0f0e!important;font-family:'DM Sans',sans-serif!important}
 .block-container{max-width:960px!important;padding:1.5rem 1.5rem 2rem!important;margin:0 auto!important}
 .stApp::before{content:'';position:fixed;inset:0;z-index:0;
   background:radial-gradient(ellipse at 15% 40%,rgba(26,107,47,.12) 0%,transparent 55%),
-             radial-gradient(ellipse at 85% 20%,rgba(224,112,32,.10) 0%,transparent 55%);
-  pointer-events:none}
-
-/* ── RAMAL KAZIMZADE imzası ── */
-.rk-brand{position:fixed;top:16px;left:20px;z-index:999;
-  font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:700;
-  letter-spacing:.2em;text-transform:uppercase;color:#e07020;
-  text-decoration:underline;text-underline-offset:4px;
-  text-decoration-color:rgba(224,112,32,.4);
-  cursor:pointer;transition:all .2s}
-.rk-brand:hover{color:#f59030;text-decoration-color:#f59030;
-  text-shadow:0 0 12px rgba(224,112,32,.5);letter-spacing:.25em}
-
-/* ── Logo ── */
+             radial-gradient(ellipse at 85% 20%,rgba(224,112,32,.10) 0%,transparent 55%);pointer-events:none}
+.rk-brand{position:fixed;top:14px;left:18px;z-index:999;font-family:'DM Sans',sans-serif;
+  font-size:.7rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#e07020;
+  text-decoration:underline;text-underline-offset:4px;text-decoration-color:rgba(224,112,32,.4);
+  transition:all .2s}
+.rk-brand:hover{color:#f59030;text-shadow:0 0 12px rgba(224,112,32,.5)}
 .logo-wrap{display:flex;justify-content:center;margin:1.5rem 0 .6rem}
 .logo-img{width:110px;height:110px;border-radius:50%;object-fit:cover;animation:glowPulse 3s ease-in-out infinite}
 @keyframes glowPulse{
   0%,100%{box-shadow:0 0 0 3px #0d0f0e,0 0 0 5px #1a6b2f,0 0 0 7px #0d0f0e,0 0 25px rgba(26,107,47,.55),0 0 55px rgba(224,112,32,.2)}
   50%{box-shadow:0 0 0 3px #0d0f0e,0 0 0 5px #e07020,0 0 0 7px #0d0f0e,0 0 30px rgba(224,112,32,.6),0 0 65px rgba(26,107,47,.25)}}
-
-.main-title{font-family:'Playfair Display',serif;font-size:clamp(1.2rem,3vw,1.8rem);
-  font-weight:700;text-align:center;color:#f0f0f0;letter-spacing:.05em;margin:.2rem 0 .1rem}
+.main-title{font-family:'Playfair Display',serif;font-size:clamp(1.2rem,3vw,1.8rem);font-weight:700;
+  text-align:center;color:#f0f0f0;letter-spacing:.05em;margin:.2rem 0 .1rem}
 .main-title span{color:#e07020}
 .sname{text-align:center;font-size:.82rem;color:#888;line-height:1.6;margin:.1rem 0}
 .sname b{color:#bbb}
-.ssub{text-align:center;font-size:.62rem;color:#444;letter-spacing:.15em;
-  text-transform:uppercase;margin-bottom:1.4rem}
-
-/* ── Status ── */
+.ssub{text-align:center;font-size:.62rem;color:#444;letter-spacing:.15em;text-transform:uppercase;margin-bottom:1.4rem}
 .status-ok{background:linear-gradient(135deg,#0a1f10,#0d2b15);border:1px solid #1a6b2f;
   border-radius:12px;padding:.55rem 1.2rem;font-size:.78rem;color:#4dff88;font-weight:600;margin-bottom:1rem}
 .status-err{background:linear-gradient(135deg,#1f0a0a,#2b0d0d);border:1px solid #6b1a1a;
   border-radius:12px;padding:.55rem 1.2rem;font-size:.78rem;color:#ff6b6b;font-weight:600;margin-bottom:1rem}
-
-/* ── Tab ── */
-[data-testid="stTabs"] [data-testid="stTab"]{
-  background:transparent!important;border:none!important;
+[data-testid="stTabs"] [data-testid="stTab"]{background:transparent!important;border:none!important;
   color:#666!important;font-weight:600!important;font-size:.85rem!important;
   padding:.6rem 1.2rem!important;border-radius:10px 10px 0 0!important;transition:all .2s!important}
 [data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"]{
-  background:linear-gradient(135deg,#1a6b2f,#0d3d1a)!important;
-  color:#4dff88!important;border-bottom:2px solid #2d9e4a!important}
-[data-testid="stTabs"] [data-testid="stTab"]:hover{color:#e07020!important}
+  background:linear-gradient(135deg,#1a6b2f,#0d3d1a)!important;color:#4dff88!important;
+  border-bottom:2px solid #2d9e4a!important}
 [data-testid="stTabContent"]{border:1.5px solid #1e251e!important;border-radius:0 16px 16px 16px!important;
   background:linear-gradient(145deg,#111311,#0f110f)!important;padding:1.5rem!important}
-
-/* ── Kart ── */
 .card{background:linear-gradient(145deg,#131613,#111311);border-radius:16px;
   border:1.5px solid #1e251e;padding:1.5rem;margin-bottom:1.2rem;box-shadow:0 4px 30px rgba(0,0,0,.4)}
-
-/* ── Upload ── */
 [data-testid="stFileUploader"]{border:2px dashed transparent!important;border-radius:16px!important;
   background:linear-gradient(#131613,#131613) padding-box,
              linear-gradient(135deg,#1a6b2f,#e07020,#1a6b2f) border-box!important;
   padding:1.2rem!important;transition:all .3s!important}
-[data-testid="stFileUploader"]:hover{
-  background:linear-gradient(#0f1a0f,#0f1a0f) padding-box,
-             linear-gradient(135deg,#2d9e4a,#f59030,#2d9e4a) border-box!important}
 [data-testid="stFileUploader"] *{color:#888!important}
 [data-testid="stFileUploader"] svg{fill:#e07020!important}
 [data-testid="stFileUploader"] button{background:linear-gradient(135deg,#1a6b2f,#2d9e4a)!important;
   color:#fff!important;border:none!important;border-radius:8px!important}
-
-/* ── Düymə ── */
 .stButton>button{font-family:'DM Sans',sans-serif!important;font-weight:700!important;
   font-size:.95rem!important;background:linear-gradient(135deg,#1a6b2f,#2d9e4a)!important;
   color:#fff!important;border:none!important;border-radius:12px!important;
@@ -108,29 +83,15 @@ st.markdown("""
 .stButton>button:hover{transform:scale(1.03) translateY(-2px)!important;
   box-shadow:0 8px 30px rgba(45,158,74,.55)!important}
 .stButton>button:disabled{opacity:.35!important}
-
-/* ── Inpainting canvas ── */
-.canvas-wrap{border:2px solid #1e251e;border-radius:14px;overflow:hidden;
-  background:#0a0c0a;margin:.8rem 0}
-.brush-info{background:#0d1510;border:1px solid #1a3320;border-radius:10px;
-  padding:.6rem 1rem;font-size:.75rem;color:#4dff88;margin:.5rem 0;
-  display:flex;align-items:center;gap:.6rem}
-.inpaint-tip{background:linear-gradient(135deg,#1a1200,#2b1e00);border:1px solid #6b4e00;
-  border-radius:12px;padding:.8rem 1.2rem;font-size:.78rem;color:#ffcc44;
-  line-height:1.7;margin:.6rem 0}
-
-/* ── Slider + FX ── */
 [data-testid="stSlider"]>div>div>div{background:#1a6b2f!important}
 [data-testid="stSlider"] label{color:#aaa!important;font-size:.78rem!important}
 .fx-panel{background:#0d1510;border:1px solid #1a3320;border-radius:12px;padding:1rem 1.2rem;margin:.5rem 0}
 .fx-title{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#4dff88;margin-bottom:.7rem}
-
-/* ── Video xəbərdarlıq ── */
 .video-warn{background:linear-gradient(135deg,#1a1200,#2b1e00);border:1px solid #6b4e00;
   border-radius:14px;padding:1rem 1.4rem;font-size:.82rem;color:#ffcc44;font-weight:600;
   margin:1rem 0;line-height:1.7;text-align:center}
-
-/* ── Progress ── */
+.inpaint-tip{background:linear-gradient(135deg,#0d1a10,#0a1508);border:1px solid #1a3320;
+  border-radius:12px;padding:.8rem 1.2rem;font-size:.78rem;color:#4dff88;line-height:1.7;margin:.6rem 0}
 .stProgress>div>div{background:linear-gradient(90deg,#1a6b2f,#e07020)!important;border-radius:3px!important}
 [data-testid="stImage"] img{border-radius:12px!important;border:1.5px solid #1e251e!important;width:100%!important}
 .spin-msg{text-align:center;font-size:.95rem;font-weight:600;color:#e07020;padding:.7rem}
@@ -146,45 +107,39 @@ st.markdown("""
   color:#aaa!important;transition:all .2s!important}
 .stDownloadButton>button:hover{border-color:#2d9e4a!important;color:#4dff88!important}
 [data-testid="stCaptionContainer"]{color:#555!important;font-size:.7rem!important}
-[data-testid="stRadio"] label,[data-testid="stRadio"] p{color:#aaa!important}
 video{border-radius:12px!important;border:1.5px solid #1e251e!important;width:100%!important}
 </style>
-
 <div class="rk-brand">RAMAL KAZIMZADE</div>
 """, unsafe_allow_html=True)
 
 # ── Köməkçi funksiyalar ──────────────────────────────────────────
 @st.cache_data(show_spinner=False, max_entries=100)
-def enhance_cached(img_bytes: bytes, fname: str, api_url: str):
+def enhance_cached(img_bytes, fname, api_url):
     try:
         resp = requests.post(f"{api_url}/enhance",
-            files={"image": (fname, img_bytes, "image/png")},
-            timeout=300,
+            files={"image": (fname, img_bytes, "image/png")}, timeout=300,
             headers={"bypass-tunnel-reminder":"yes","ngrok-skip-browser-warning":"true"})
         try: data = resp.json()
         except: return None,None,{},f"Parse xətası ({resp.status_code}): {resp.text[:200]}"
-        if data.get("success"):
-            return base64.b64decode(data["image"]),data.get("type","image"),data,None
+        if data.get("success"): return base64.b64decode(data["image"]),data.get("type","image"),data,None
         return None,None,{},data.get("error",f"Backend xətası: {data}")
     except requests.exceptions.Timeout: return None,None,{},"Timeout xətası"
     except requests.exceptions.ConnectionError: return None,None,{},"Bağlantı xətası"
     except Exception as e: return None,None,{},f"{type(e).__name__}: {str(e)}"
 
 @st.cache_data(show_spinner=False, max_entries=20)
-def enhance_video_cached(vid_bytes: bytes, fname: str, api_url: str):
+def enhance_video_cached(vid_bytes, fname, api_url):
     try:
-        ext = fname.rsplit(".",1)[-1].lower() if "." in fname else "mp4"
+        ext  = fname.rsplit(".",1)[-1].lower() if "." in fname else "mp4"
         mime = {"mp4":"video/mp4","mov":"video/quicktime","avi":"video/x-msvideo"}.get(ext,"video/mp4")
         resp = requests.post(f"{api_url}/enhance-video",
-            files={"video": (fname, vid_bytes, mime)},
-            timeout=600,
+            files={"video": (fname, vid_bytes, mime)}, timeout=600,
             headers={"bypass-tunnel-reminder":"yes","ngrok-skip-browser-warning":"true"})
         try: data = resp.json()
         except: return None,{},f"Parse xətası ({resp.status_code}): {resp.text[:200]}"
         if data.get("success"): return base64.b64decode(data["image"]),data,None
         return None,{},data.get("error",f"Backend xətası: {data}")
     except requests.exceptions.Timeout: return None,{},"Timeout: Video çox böyükdür"
-    except requests.exceptions.ConnectionError: return None,{},"Bağlantı xətası"
     except Exception as e: return None,{},f"{type(e).__name__}: {str(e)}"
 
 def check_api(url):
@@ -195,9 +150,7 @@ def check_api(url):
     except: return False
 
 def pil_to_bytes(img):
-    buf = io.BytesIO()
-    img.save(buf, format="PNG", optimize=True)
-    return buf.getvalue()
+    buf = io.BytesIO(); img.save(buf, format="PNG", optimize=True); return buf.getvalue()
 
 def apply_effects(img, brightness, contrast):
     return ImageEnhance.Contrast(ImageEnhance.Brightness(img).enhance(brightness)).enhance(contrast)
@@ -214,14 +167,122 @@ def composite_bg(fg, bg):
         bg_r  = bg.resize(no_bg.size, Image.LANCZOS).convert("RGBA")
         return Image.alpha_composite(bg_r, no_bg).convert("RGB")
     except ImportError:
-        st.warning("⚠️  quraşdırılmayıb."); return fg
+        st.warning("⚠️ rembg quraşdırılmayıb"); return fg
 
 MSGS = ["🚀 AI mühərriki işə düşür...","🧪 Piksellər bərpa olunur...",
         "✨ Möcüzə baş verir...","🎨 Rənglər canlanır...","⚡ GPU tam gücündə..."]
 
+# ── HTML5 Canvas fırça komponenti ───────────────────────────────
+def freedraw_canvas(img_pil, canvas_w=700):
+    """HTML5 Canvas ilə sərbəst fırça — xarici kitabxana lazım deyil"""
+    iw, ih = img_pil.size
+    scale  = min(canvas_w / iw, 500 / ih, 1.0)
+    cw, ch = int(iw * scale), int(ih * scale)
+
+    buf = io.BytesIO()
+    img_pil.resize((cw, ch), Image.LANCZOS).save(buf, format="PNG")
+    img_b64 = base64.b64encode(buf.getvalue()).decode()
+
+    canvas_html = f"""
+<div style="position:relative;display:inline-block;border-radius:12px;overflow:hidden;
+     border:2px solid #1e251e;background:#0a0c0a;cursor:crosshair">
+  <img id="bgImg" src="data:image/png;base64,{img_b64}"
+       style="display:block;width:{cw}px;height:{ch}px">
+  <canvas id="drawCanvas" width="{cw}" height="{ch}"
+          style="position:absolute;top:0;left:0;opacity:.75;cursor:crosshair"></canvas>
+</div>
+<div style="margin:.6rem 0;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+  <label style="color:#aaa;font-size:.75rem">🖌️ Fırça ölçüsü:
+    <input type="range" id="brushSize" min="5" max="80" value="25"
+           style="margin-left:.4rem;accent-color:#e07020">
+    <span id="brushVal" style="color:#e07020;font-weight:700;margin-left:.3rem">25</span>px
+  </label>
+  <button onclick="clearCanvas()" style="background:#1a1a1a;border:1px solid #333;
+    color:#aaa;padding:.3rem .8rem;border-radius:6px;cursor:pointer;font-size:.75rem">
+    🗑️ Təmizlə
+  </button>
+  <button onclick="saveMask()" style="background:linear-gradient(135deg,#1a6b2f,#2d9e4a);
+    border:none;color:#fff;padding:.35rem 1rem;border-radius:6px;cursor:pointer;
+    font-size:.75rem;font-weight:700">
+    ✅ Maskı Götür
+  </button>
+</div>
+<textarea id="maskData" style="display:none"></textarea>
+
+<script>
+const canvas  = document.getElementById('drawCanvas');
+const ctx     = canvas.getContext('2d');
+const slider  = document.getElementById('brushSize');
+const valSpan = document.getElementById('brushVal');
+let drawing   = false;
+
+ctx.fillStyle   = 'rgba(224,112,32,0)';
+ctx.strokeStyle = '#e07020';
+ctx.lineWidth   = 25;
+ctx.lineCap     = 'round';
+ctx.lineJoin    = 'round';
+
+slider.oninput = () => {{
+  ctx.lineWidth = slider.value;
+  valSpan.textContent = slider.value;
+}};
+
+function getPos(e) {{
+  const r = canvas.getBoundingClientRect();
+  const t = e.touches ? e.touches[0] : e;
+  return [t.clientX - r.left, t.clientY - r.top];
+}}
+
+canvas.addEventListener('mousedown',  e => {{ drawing=true; ctx.beginPath(); const[x,y]=getPos(e); ctx.moveTo(x,y); }});
+canvas.addEventListener('mousemove',  e => {{ if(!drawing) return; const[x,y]=getPos(e); ctx.lineTo(x,y); ctx.strokeStyle='rgba(224,112,32,0.9)'; ctx.stroke(); }});
+canvas.addEventListener('mouseup',   () => drawing=false);
+canvas.addEventListener('mouseleave',() => drawing=false);
+canvas.addEventListener('touchstart', e => {{ e.preventDefault(); drawing=true; ctx.beginPath(); const[x,y]=getPos(e); ctx.moveTo(x,y); }}, {{passive:false}});
+canvas.addEventListener('touchmove',  e => {{ e.preventDefault(); if(!drawing) return; const[x,y]=getPos(e); ctx.lineTo(x,y); ctx.strokeStyle='rgba(224,112,32,0.9)'; ctx.stroke(); }}, {{passive:false}});
+canvas.addEventListener('touchend',  () => drawing=false);
+
+function clearCanvas() {{
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}}
+
+function saveMask() {{
+  // Yalnız rənglənmiş hissəni ağ, qalanını qara mask kimi saxla
+  const tmp = document.createElement('canvas');
+  tmp.width  = canvas.width;
+  tmp.height = canvas.height;
+  const tc   = tmp.getContext('2d');
+  tc.fillStyle = 'black';
+  tc.fillRect(0, 0, tmp.width, tmp.height);
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const out     = tc.getImageData(0, 0, tmp.width, tmp.height);
+  for(let i=0; i<imgData.data.length; i+=4) {{
+    if(imgData.data[i+3] > 10) {{
+      out.data[i]   = 255;
+      out.data[i+1] = 255;
+      out.data[i+2] = 255;
+      out.data[i+3] = 255;
+    }}
+  }}
+  tc.putImageData(out, 0, 0);
+  const b64 = tmp.toDataURL('image/png').split(',')[1];
+  document.getElementById('maskData').value = b64;
+
+  // Streamlit-ə göndər
+  const el = document.getElementById('maskData');
+  el.dispatchEvent(new Event('input', {{bubbles:true}}));
+  window.parent.postMessage({{type:'streamlit:setComponentValue', value: b64}}, '*');
+  alert('✅ Maska hazırdır! İndi "Obyekti Yox Et" düyməsini basın.');
+}}
+</script>
+"""
+    st.components.v1.html(canvas_html, height=ch+120, scrolling=False)
+    return cw, ch, scale
+
 # ── Header ───────────────────────────────────────────────────────
 st.markdown(f"""
-<div class="logo-wrap"><img class="logo-img" src="data:image/jpeg;base64,{LOGO_B64}"></div>
+<div class="logo-wrap">
+  <img class="logo-img" src="data:image/jpeg;base64,{LOGO_B64}">
+</div>
 <div class="main-title">TFTML <span>ENHANCER</span> AI</div>
 <div class="sname">K. Ağayev adına <b>Biləsuvar Şəhər</b><br>
 Texniki Fənlər Təmayüllü İnternat Tipli Məktəb-Lisey</div>
@@ -234,9 +295,6 @@ if api_ok:
 else:
     st.markdown('<div class="status-err">⚠️ Colab Backend offline — Colab-ı işə salın</div>', unsafe_allow_html=True)
 
-# ══════════════════════════════════════════════════════════════════
-#  TAB SİSTEMİ
-# ══════════════════════════════════════════════════════════════════
 tab1, tab2, tab3 = st.tabs(["🖼️  Şəkil Artır", "🧹  Obyekt Sil (Inpainting)", "🎬  Video Artır"])
 
 # ══════════════════════════════════════════════════════════════════
@@ -244,24 +302,24 @@ tab1, tab2, tab3 = st.tabs(["🖼️  Şəkil Artır", "🧹  Obyekt Sil (Inpain
 # ══════════════════════════════════════════════════════════════════
 with tab1:
     uploaded = st.file_uploader("📸  Şəkil seçin",
-        type=["jpg","jpeg","png","webp","bmp"], label_visibility="visible", key="img_up")
-
+        type=["jpg","jpeg","png","webp","bmp"], key="img_up")
     final_img = None
+
     if uploaded:
         orig_pil = Image.open(uploaded).convert("RGB")
-        col_prev, col_fx = st.columns([3, 2])
+        col_prev, col_fx = st.columns([3,2])
 
         with col_fx:
             st.markdown('<div class="fx-panel">', unsafe_allow_html=True)
             st.markdown('<div class="fx-title">✂️ Kəsim</div>', unsafe_allow_html=True)
-            w, h = orig_pil.size
+            w,h = orig_pil.size
             c1,c2 = st.columns(2)
             with c1:
-                cl = st.number_input("Sol",   0,w-10,0,step=5,key="cl")
-                ct = st.number_input("Yuxarı",0,h-10,0,step=5,key="ct")
+                cl = st.number_input("Sol",   0,w-10,0, step=5,key="cl")
+                ct = st.number_input("Yuxarı",0,h-10,0, step=5,key="ct")
             with c2:
-                cr = st.number_input("Sağ",  10,w,w,step=5,key="cr")
-                cb = st.number_input("Aşağı",10,h,h,step=5,key="cb")
+                cr = st.number_input("Sağ",  10,w,w, step=5,key="cr")
+                cb = st.number_input("Aşağı",10,h,h, step=5,key="cb")
             st.markdown('</div>', unsafe_allow_html=True)
 
             st.markdown('<div class="fx-panel">', unsafe_allow_html=True)
@@ -278,11 +336,11 @@ with tab1:
             if BACKGROUNDS[bg_choice]=="custom":
                 cbf = st.file_uploader("Öz fonunuzu yükləyin",
                     type=["jpg","jpeg","png","webp"],key="cbg",label_visibility="visible")
-                if cbf: custom_bg = Image.open(cbf).convert("RGBA")
+                if cbf: custom_bg=Image.open(cbf).convert("RGBA")
             else:
                 try:
-                    bg_prev = fetch_bg(BACKGROUNDS[bg_choice])
-                    st.image(bg_prev.convert("RGB").resize((220,124),Image.LANCZOS),use_container_width=True)
+                    bg_p = fetch_bg(BACKGROUNDS[bg_choice])
+                    st.image(bg_p.convert("RGB").resize((220,124),Image.LANCZOS),use_container_width=True)
                 except: pass
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -300,18 +358,18 @@ with tab1:
             else:
                 final_img = edited
             st.markdown('<p style="text-align:center;font-size:.68rem;color:#555;'
-                        'letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem">'
-                        'Önizləmə</p>', unsafe_allow_html=True)
+                'letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem">Önizləmə</p>',
+                unsafe_allow_html=True)
             st.image(final_img, use_container_width=True)
             st.caption(f"📐 {final_img.width}×{final_img.height} px")
 
     btn1 = st.button("✨  AI ilə 4× Keyfiyyəti Artır",
-                     disabled=not (uploaded and api_ok and final_img is not None), key="btn1")
+                     disabled=not(uploaded and api_ok and final_img is not None), key="btn1")
 
     if btn1 and final_img:
         send_bytes    = pil_to_bytes(final_img)
         img_hash_full = hashlib.md5(send_bytes).hexdigest()
-        prog = st.progress(0); msg_box = st.empty(); stop = [False]
+        prog=st.progress(0); msg_box=st.empty(); stop=[False]
         def spin():
             i=0
             while not stop[0]:
@@ -319,7 +377,7 @@ with tab1:
                 time.sleep(2); i+=1
         threading.Thread(target=spin,daemon=True).start()
         prog.progress(20,"Colab-a göndərilir...")
-        rb, rtype, meta, err = enhance_cached(send_bytes, "image.png", API_URL)
+        rb,rtype,meta,err = enhance_cached(send_bytes,"image.png",API_URL)
         stop[0]=True; msg_box.empty(); prog.progress(100,"Hazır! 🎉")
         if err:
             st.error(f"❌ {err}")
@@ -327,23 +385,23 @@ with tab1:
             st.balloons()
             if st.session_state.get(f"c_{img_hash_full}"):
                 st.markdown('<div style="background:#0a1520;border:1px solid #1a4a7a;border-radius:8px;'
-                            'padding:.35rem .9rem;font-size:.7rem;color:#5bb3ff;font-weight:600;'
-                            'display:inline-block;margin-bottom:.4rem">⚡ Cache</div>',unsafe_allow_html=True)
+                    'padding:.35rem .9rem;font-size:.7rem;color:#5bb3ff;font-weight:600;'
+                    'display:inline-block;margin-bottom:.4rem">⚡ Cache</div>',unsafe_allow_html=True)
             st.session_state[f"c_{img_hash_full}"] = True
             st.success("🎉 Tamamlandı!")
             result_pil = Image.open(io.BytesIO(rb))
             st.markdown('<div class="card"><div style="display:flex;align-items:center;'
-                        'justify-content:space-between;margin-bottom:1rem">'
-                        '<span style="font-family:\'Playfair Display\',serif;font-size:.95rem;color:#eee">Nəticə</span>'
-                        '<span class="b-4x">4× Enhanced</span></div>', unsafe_allow_html=True)
+                'justify-content:space-between;margin-bottom:1rem">'
+                '<span style="font-family:\'Playfair Display\',serif;font-size:.95rem;color:#eee">Nəticə</span>'
+                '<span class="b-4x">4× Enhanced</span></div>', unsafe_allow_html=True)
             c1,c2 = st.columns(2)
             with c1:
                 st.markdown('<p style="text-align:center"><span class="badge b-orig">REDAKTƏLİ</span></p>',unsafe_allow_html=True)
-                st.image(final_img, use_container_width=True)
+                st.image(final_img,use_container_width=True)
                 st.caption(f"📐 {final_img.width}×{final_img.height} px")
             with c2:
                 st.markdown('<p style="text-align:center"><span class="badge b-enh">4× AI</span></p>',unsafe_allow_html=True)
-                st.image(result_pil, use_container_width=True)
+                st.image(result_pil,use_container_width=True)
                 st.caption(f"📐 {result_pil.width}×{result_pil.height} px")
             d1,d2 = st.columns(2)
             with d1:
@@ -355,92 +413,78 @@ with tab1:
             st.markdown('</div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════
-#  TAB 2 — INPAINTING (Obyekt Silmə)
+#  TAB 2 — INPAINTING (HTML5 Canvas fırça)
 # ══════════════════════════════════════════════════════════════════
 with tab2:
-    st.markdown('<div class="inpaint-tip">🖌️ Şəkil yükləyin → Silmək istədiyiniz obyektin üzərini <b style="color:#e07020">narıncı fırça</b> ilə rəngləyin → <b>"Obyekti Yox Et"</b> düyməsini basın.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="inpaint-tip">🖌️ Şəkil yükləyin → Narıncı fırça ilə silinəcək hissəni rəngləyin → <b>"Maskı Götür"</b> düyməsini basın → <b>"Obyekti Yox Et"</b></div>',
+                unsafe_allow_html=True)
 
     inp_file = st.file_uploader("📸  Şəkil seçin (Inpainting üçün)",
-        type=["jpg","jpeg","png","webp"], label_visibility="visible", key="inp_up")
+        type=["jpg","jpeg","png","webp"], key="inp_up")
 
     if inp_file:
         inp_pil = Image.open(inp_file).convert("RGB")
         iw, ih  = inp_pil.size
-        # Canvas ölçüsü — max 700px en
-        scale   = min(700 / iw, 500 / ih, 1.0)
-        cw, ch  = int(iw * scale), int(ih * scale)
 
-        # ── Mask yaratma — canvas olmadan ────────────────────────
-        st.markdown('<div class="inpaint-tip">📍 Aşağıda silinəcək bölgənin koordinatlarını daxil edin. Şəkil üzərindəki piksel koordinatları (sol yuxarı = 0,0)</div>', unsafe_allow_html=True)
+        cw, ch, scale = freedraw_canvas(inp_pil, canvas_w=680)
 
-        st.image(inp_pil, use_container_width=True, caption=f"Orijinal şəkil — {iw}×{ih} px")
-
+        # Mask koordinat üsulu — HTML5 canvas-dan data almaq mümkün olmadıqda
+        st.markdown("---")
         st.markdown('<div class="fx-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="fx-title">📍 Silinəcək Bölgə (Mask Koordinatları)</div>', unsafe_allow_html=True)
-
-        mc1, mc2 = st.columns(2)
+        st.markdown('<div class="fx-title">📍 Əlavə: Koordinat ilə Mask (Ehtiyat üsul)</div>', unsafe_allow_html=True)
+        st.caption("Yuxarıdakı fırça işləməsə, aşağıda koordinatla silinəcək bölgəni seçin")
+        mc1,mc2 = st.columns(2)
         with mc1:
-            mx1 = st.number_input("Sol  (X1)", 0, iw, int(iw*0.25), step=5, key="mx1")
-            my1 = st.number_input("Yuxarı (Y1)", 0, ih, int(ih*0.25), step=5, key="my1")
+            mx1 = st.number_input("Sol  (X1)", 0,iw,int(iw*.2),step=5,key="mx1")
+            my1 = st.number_input("Yuxarı (Y1)",0,ih,int(ih*.2),step=5,key="my1")
         with mc2:
-            mx2 = st.number_input("Sağ  (X2)", 0, iw, int(iw*0.75), step=5, key="mx2")
-            my2 = st.number_input("Aşağı (Y2)", 0, ih, int(ih*0.75), step=5, key="my2")
+            mx2 = st.number_input("Sağ  (X2)", 0,iw,int(iw*.8),step=5,key="mx2")
+            my2 = st.number_input("Aşağı (Y2)",0,ih,int(ih*.8),step=5,key="my2")
 
-        # Mask önizləmə
-        from PIL import ImageDraw
         preview = inp_pil.copy()
         draw    = ImageDraw.Draw(preview)
-        draw.rectangle([mx1, my1, mx2, my2], fill=(224, 112, 32))
-        prev_blend = Image.blend(inp_pil, preview, alpha=0.55)
-
-        st.image(prev_blend, use_container_width=True,
-                 caption=f"Narıncı bölgə silinəcək: ({mx1},{my1}) → ({mx2},{my2})")
+        draw.rectangle([mx1,my1,mx2,my2], fill=(224,112,32))
+        st.image(Image.blend(inp_pil,preview,alpha=0.5), use_container_width=True,
+                 caption=f"Narıncı bölgə silinəcək: ({mx1},{my1})→({mx2},{my2})")
         st.markdown('</div>', unsafe_allow_html=True)
 
         btn_inp = st.button("🧹  Obyekti Yox Et", disabled=not api_ok, key="btn_inp")
 
         if btn_inp:
-            # Mask yarat
-            mask = Image.new("RGB", (iw, ih), (0, 0, 0))
-            mdraw = ImageDraw.Draw(mask)
-            mdraw.rectangle([mx1, my1, mx2, my2], fill=(255, 255, 255))
-
+            mask    = Image.new("RGB",(iw,ih),(0,0,0))
+            mdraw   = ImageDraw.Draw(mask)
+            mdraw.rectangle([mx1,my1,mx2,my2], fill=(255,255,255))
             orig_bytes = pil_to_bytes(inp_pil)
             mask_bytes = pil_to_bytes(mask)
-
-            prog2 = st.progress(0, "Backend-ə göndərilir...")
+            prog2 = st.progress(0,"Backend-ə göndərilir...")
             try:
-                resp = requests.post(
-                    f"{API_URL}/inpaint",
-                    files={
-                        "image": ("image.png", orig_bytes, "image/png"),
-                        "mask":  ("mask.png",  mask_bytes, "image/png"),
-                    },
+                resp = requests.post(f"{API_URL}/inpaint",
+                    files={"image":("image.png",orig_bytes,"image/png"),
+                           "mask": ("mask.png", mask_bytes,"image/png")},
                     timeout=120,
-                    headers={"bypass-tunnel-reminder":"yes","ngrok-skip-browser-warning":"true"}
-                )
-                prog2.progress(90, "Emal edilir...")
+                    headers={"bypass-tunnel-reminder":"yes","ngrok-skip-browser-warning":"true"})
+                prog2.progress(90,"Emal edilir...")
                 data = resp.json()
                 if data.get("success"):
-                    prog2.progress(100, "Hazır! 🎉")
+                    prog2.progress(100,"Hazır! 🎉")
                     st.success("🎉 Obyekt silindi!")
                     result_inp = Image.open(io.BytesIO(base64.b64decode(data["image"])))
-                    c1, c2 = st.columns(2)
+                    c1,c2 = st.columns(2)
                     with c1:
-                        st.markdown('<p style="text-align:center"><span class="badge b-orig">ORİGİNAL</span></p>', unsafe_allow_html=True)
-                        st.image(inp_pil, use_container_width=True)
+                        st.markdown('<p style="text-align:center"><span class="badge b-orig">ORİGİNAL</span></p>',unsafe_allow_html=True)
+                        st.image(inp_pil,use_container_width=True)
                     with c2:
-                        st.markdown('<p style="text-align:center"><span class="badge b-enh">OBYEKTSİZ</span></p>', unsafe_allow_html=True)
-                        st.image(result_inp, use_container_width=True)
+                        st.markdown('<p style="text-align:center"><span class="badge b-enh">OBYEKTSİZ</span></p>',unsafe_allow_html=True)
+                        st.image(result_inp,use_container_width=True)
                     st.download_button("⬇  Nəticəni Endir",
                         base64.b64decode(data["image"]),
                         f"inpainted_{inp_file.name.rsplit('.',1)[0]}.png",
-                        "image/png", use_container_width=True)
+                        "image/png",use_container_width=True)
                 else:
-                    prog2.progress(100, "Xəta!")
-                    st.error(f"❌ {data.get('error', 'Naməlum xəta')}")
+                    prog2.progress(100,"Xəta!")
+                    st.error(f"❌ {data.get('error','Naməlum xəta')}")
             except Exception as e:
-                prog2.progress(100, "Xəta!")
+                prog2.progress(100,"Xəta!")
                 st.error(f"❌ {str(e)}")
 
 # ══════════════════════════════════════════════════════════════════
@@ -449,25 +493,21 @@ with tab2:
 with tab3:
     st.markdown('<div class="video-warn">⚠️ Video emalı bir neçə dəqiqə çəkə bilər.<br>'
                 'Emal zamanı pəncərəni bağlamayın!</div>', unsafe_allow_html=True)
-
     video_file = st.file_uploader("🎬  Video seçin",
-        type=["mp4","mov","avi","mkv"], label_visibility="visible", key="vid_up")
-
+        type=["mp4","mov","avi","mkv"], key="vid_up")
     if video_file:
         st.video(video_file)
         st.markdown(f'<div style="font-size:.76rem;color:#666;padding:.3rem 0">'
-                    f'🎬 <span style="color:#bbb">{video_file.name}</span> &nbsp;'
-                    f'📦 <span style="color:#bbb">{video_file.size/1024/1024:.1f} MB</span></div>',
-                    unsafe_allow_html=True)
-
+            f'🎬 <span style="color:#bbb">{video_file.name}</span> &nbsp;'
+            f'📦 <span style="color:#bbb">{video_file.size/1024/1024:.1f} MB</span></div>',
+            unsafe_allow_html=True)
     btn3 = st.button("🎬  Video 4× Keyfiyyətini Artır",
-                     disabled=not (video_file and api_ok), key="btn3")
-
+                     disabled=not(video_file and api_ok), key="btn3")
     if btn3 and video_file:
         vid_bytes = video_file.read()
         st.markdown('<div class="video-warn">🔄 Video emal edilir — lütfən pəncərəni bağlamayın!</div>',
                     unsafe_allow_html=True)
-        prog3 = st.progress(0); msg3 = st.empty(); stop3 = [False]
+        prog3=st.progress(0); msg3=st.empty(); stop3=[False]
         def spin3():
             i=0; mv=["🎬 Kadrlar ayrılır...","⚡ GPU hər kadrı emal edir...",
                       "🔄 Video yenidən yığılır...","✨ Möcüzə baş verir..."]
@@ -476,16 +516,12 @@ with tab3:
                 time.sleep(3); i+=1
         threading.Thread(target=spin3,daemon=True).start()
         prog3.progress(10,"Video göndərilir...")
-        rb3, meta3, err3 = enhance_video_cached(vid_bytes, video_file.name, API_URL)
+        rb3,meta3,err3 = enhance_video_cached(vid_bytes,video_file.name,API_URL)
         stop3[0]=True; msg3.empty()
         if err3:
-            prog3.progress(100,"Xəta!")
-            st.error(f"❌ {err3}")
+            prog3.progress(100,"Xəta!"); st.error(f"❌ {err3}")
         else:
-            prog3.progress(100,"Video hazır! 🎉")
-            st.balloons()
+            prog3.progress(100,"Video hazır! 🎉"); st.balloons()
             st.success(f"🎉 Video hazır! {meta3.get('original','?')} → {meta3.get('enhanced','?')} | {meta3.get('frames','?')} kadr")
-            st.download_button("⬇  4× Videonu Endir (MP4)", rb3,
-                f"enhanced_{video_file.name.rsplit('.',1)[0]}.mp4",
-                "video/mp4", use_container_width=True)
-            
+            st.download_button("⬇  4× Videonu Endir (MP4)",rb3,
+                f"enhanced_{video_file.name.rsplit('.',1)[0]}.mp4","video/mp4",use_container_width=True)
