@@ -9,7 +9,7 @@ from PIL import Image, ImageEnhance
 import numpy as np
 
 API_URL  = "https://stacie-apertural-ardelia.ngrok-free.dev"
-LOGO_B64 = "logo.png.jpeg"
+LOGO_B64 = ""
 
 BACKGROUNDS = {
     "🦕 Dinozavrlar":    "https://images.unsplash.com/photo-1606206873764-fd15e242ff80?w=1280&q=80",
@@ -371,6 +371,14 @@ with tab2:
         cw, ch  = int(iw * scale), int(ih * scale)
 
         try:
+            # streamlit-drawable-canvas patch — Streamlit 1.30+ uyğunluq
+            try:
+                import streamlit.elements.image as st_image
+                if not hasattr(st_image, 'image_to_url'):
+                    import streamlit.elements.lib.image_utils as _iu
+                    st_image.image_to_url = _iu.image_to_url
+            except Exception:
+                pass
             from streamlit_drawable_canvas import st_canvas
 
             st.markdown(f'<div class="brush-info">🖌️ Fırça aktiv — narıncı ilə rəngləyin | Canvas: {cw}×{ch} px</div>',
