@@ -370,123 +370,78 @@ with tab2:
         scale   = min(700 / iw, 500 / ih, 1.0)
         cw, ch  = int(iw * scale), int(ih * scale)
 
-        try:
-            # ── streamlit-drawable-canvas monkey patch ──────────
-            import importlib, types
+        # ── Mask yaratma — canvas olmadan ────────────────────────
+        st.markdown('<div class="inpaint-tip">📍 Aşağıda silinəcək bölgənin koordinatlarını daxil edin. Şəkil üzərindəki piksel koordinatları (sol yuxarı = 0,0)</div>', unsafe_allow_html=True)
+
+        st.image(inp_pil, use_container_width=True, caption=f"Orijinal şəkil — {iw}×{ih} px")
+
+        st.markdown('<div class="fx-panel">', unsafe_allow_html=True)
+        st.markdown('<div class="fx-title">📍 Silinəcək Bölgə (Mask Koordinatları)</div>', unsafe_allow_html=True)
+
+        mc1, mc2 = st.columns(2)
+        with mc1:
+            mx1 = st.number_input("Sol  (X1)", 0, iw, int(iw*0.25), step=5, key="mx1")
+            my1 = st.number_input("Yuxarı (Y1)", 0, ih, int(ih*0.25), step=5, key="my1")
+        with mc2:
+            mx2 = st.number_input("Sağ  (X2)", 0, iw, int(iw*0.75), step=5, key="mx2")
+            my2 = st.number_input("Aşağı (Y2)", 0, ih, int(ih*0.75), step=5, key="my2")
+
+        # Mask önizləmə
+        from PIL import ImageDraw
+        preview = inp_pil.copy()
+        draw    = ImageDraw.Draw(preview)
+        draw.rectangle([mx1, my1, mx2, my2], fill=(224, 112, 32))
+        prev_blend = Image.blend(inp_pil, preview, alpha=0.55)
+
+        st.image(prev_blend, use_container_width=True,
+                 caption=f"Narıncı bölgə silinəcək: ({mx1},{my1}) → ({mx2},{my2})")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        btn_inp = st.button("🧹  Obyekti Yox Et", disabled=not api_ok, key="btn_inp")
+
+        if btn_inp:
+            # Mask yarat
+            mask = Image.new("RGB", (iw, ih), (0, 0, 0))
+            mdraw = ImageDraw.Draw(mask)
+            mdraw.rectangle([mx1, my1, mx2, my2], fill=(255, 255, 255))
+
+            orig_bytes = pil_to_bytes(inp_pil)
+            mask_bytes = pil_to_bytes(mask)
+
+            prog2 = st.progress(0, "Backend-ə göndərilir...")
             try:
-                import streamlit.elements.image as _st_img
-                # Streamlit 1.28- → image_to_url birbaşa var
-                if not hasattr(_st_img, 'image_to_url'):
-                    # Streamlit 1.29-1.32 → lib.image_utils içindədir
-                    try:
-                        from streamlit.elements.lib.image_utils import image_to_url as _itu
-                        _st_img.image_to_url = _itu
-                    except ImportError:
-                        pass
-                # Streamlit 1.33+ → runtime.media_file_storage içindədir
-                if not hasattr(_st_img, 'image_to_url'):
-                    try:
-                        from streamlit.runtime.media_file_storage import media_file_manager
-                        def _itu_fallback(image, width, clamp, channels, output_format, image_id, allow_emoji=False):
-                            import base64, io
-                            from PIL import Image as _PIL
-                            if isinstance(image, _PIL.Image.Image):
-                                buf = io.BytesIO()
-                                image.save(buf, format='PNG')
-                                b64 = base64.b64encode(buf.getvalue()).decode()
-                                return f"data:image/png;base64,{b64}"
-                            return str(image)
-                        _st_img.image_to_url = _itu_fallback
-                    except Exception:
-                        pass
-            except Exception:
-                pass
-            from streamlit_drawable_canvas import st_canvas
-
-            st.markdown(f'<div class="brush-info">🖌️ Fırça aktiv — narıncı ilə rəngləyin | Canvas: {cw}×{ch} px</div>',
-                        unsafe_allow_html=True)
-
-            col_c, col_ctrl = st.columns([4, 1])
-            with col_ctrl:
-                stroke_w = st.slider("Fırça ölçüsü", 5, 60, 20, key="sw")
-                st.markdown('<div style="height:.5rem"></div>', unsafe_allow_html=True)
-                st.markdown('<div style="background:#e07020;width:100%;height:6px;border-radius:3px"></div>',
-                            unsafe_allow_html=True)
-                st.caption("Fırça rəngi: narıncı")
-
-            with col_c:
-                st.markdown('<div class="canvas-wrap">', unsafe_allow_html=True)
-                canvas_result = st_canvas(
-                    fill_color   = "rgba(224, 112, 32, 0.85)",
-                    stroke_width = stroke_w,
-                    stroke_color = "#e07020",
-                    background_image = inp_pil.resize((cw, ch), Image.LANCZOS),
-                    update_streamlit = True,
-                    width  = cw,
-                    height = ch,
-                    drawing_mode = "freedraw",
-                    key = "canvas",
+                resp = requests.post(
+                    f"{API_URL}/inpaint",
+                    files={
+                        "image": ("image.png", orig_bytes, "image/png"),
+                        "mask":  ("mask.png",  mask_bytes, "image/png"),
+                    },
+                    timeout=120,
+                    headers={"bypass-tunnel-reminder":"yes","ngrok-skip-browser-warning":"true"}
                 )
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            btn_inp = st.button("🧹  Obyekti Yox Et", disabled=not api_ok, key="btn_inp")
-
-            if btn_inp and canvas_result is not None and canvas_result.image_data is not None:
-                mask_arr  = canvas_result.image_data
-                mask_rgba = Image.fromarray(mask_arr.astype(np.uint8), "RGBA")
-
-                # Maskadan yalnız rənglənmiş hissəni götür
-                r,g,b,a = mask_rgba.split()
-                mask_bin = a.point(lambda x: 255 if x > 10 else 0).resize((iw,ih), Image.NEAREST)
-                mask_rgb = Image.merge("RGB", [mask_bin, mask_bin, mask_bin])
-
-                orig_bytes = pil_to_bytes(inp_pil)
-                mask_bytes = pil_to_bytes(mask_rgb)
-
-                prog2 = st.progress(0,"Backend-ə göndərilir...")
-                try:
-                    resp = requests.post(
-                        f"{API_URL}/inpaint",
-                        files={
-                            "image": ("image.png", orig_bytes, "image/png"),
-                            "mask":  ("mask.png",  mask_bytes, "image/png"),
-                        },
-                        timeout=120,
-                        headers={"bypass-tunnel-reminder":"yes","ngrok-skip-browser-warning":"true"}
-                    )
-                    prog2.progress(90,"Emal edilir...")
-                    data = resp.json()
-                    if data.get("success"):
-                        prog2.progress(100,"Hazır! 🎉")
-                        st.success("🎉 Obyekt silindi!")
-                        result_inp = Image.open(io.BytesIO(base64.b64decode(data["image"])))
-                        c1,c2 = st.columns(2)
-                        with c1:
-                            st.markdown('<p style="text-align:center"><span class="badge b-orig">ORİGİNAL</span></p>',unsafe_allow_html=True)
-                            st.image(inp_pil, use_container_width=True)
-                        with c2:
-                            st.markdown('<p style="text-align:center"><span class="badge b-enh">OBYEKTSİZ</span></p>',unsafe_allow_html=True)
-                            st.image(result_inp, use_container_width=True)
-                        st.download_button("⬇  Nəticəni Endir",
-                            base64.b64decode(data["image"]),
-                            f"inpainted_{inp_file.name.rsplit('.',1)[0]}.png",
-                            "image/png", use_container_width=True)
-                    else:
-                        prog2.progress(100,"Xəta!")
-                        st.error(f"❌ {data.get('error','Naməlum xəta')}")
-                except Exception as e:
-                    prog2.progress(100,"Xəta!")
-                    st.error(f"❌ {str(e)}")
-
-        except ImportError:
-            st.markdown("""<div class="card" style="text-align:center;padding:2rem">
-            <div style="font-size:2rem;margin-bottom:.8rem">📦</div>
-            <div style="color:#e07020;font-weight:700;font-size:.9rem;margin-bottom:.5rem">
-            streamlit-drawable-canvas quraşdırılmayıb</div>
-            <div style="color:#666;font-size:.8rem">requirements.txt faylına əlavə edin:</div>
-            <code style="background:#0d0f0e;color:#4dff88;padding:.3rem .8rem;
-            border-radius:6px;font-size:.78rem;display:inline-block;margin-top:.5rem">
-            streamlit-drawable-canvas</code></div>""", unsafe_allow_html=True)
+                prog2.progress(90, "Emal edilir...")
+                data = resp.json()
+                if data.get("success"):
+                    prog2.progress(100, "Hazır! 🎉")
+                    st.success("🎉 Obyekt silindi!")
+                    result_inp = Image.open(io.BytesIO(base64.b64decode(data["image"])))
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.markdown('<p style="text-align:center"><span class="badge b-orig">ORİGİNAL</span></p>', unsafe_allow_html=True)
+                        st.image(inp_pil, use_container_width=True)
+                    with c2:
+                        st.markdown('<p style="text-align:center"><span class="badge b-enh">OBYEKTSİZ</span></p>', unsafe_allow_html=True)
+                        st.image(result_inp, use_container_width=True)
+                    st.download_button("⬇  Nəticəni Endir",
+                        base64.b64decode(data["image"]),
+                        f"inpainted_{inp_file.name.rsplit('.',1)[0]}.png",
+                        "image/png", use_container_width=True)
+                else:
+                    prog2.progress(100, "Xəta!")
+                    st.error(f"❌ {data.get('error', 'Naməlum xəta')}")
+            except Exception as e:
+                prog2.progress(100, "Xəta!")
+                st.error(f"❌ {str(e)}")
 
 # ══════════════════════════════════════════════════════════════════
 #  TAB 3 — VİDEO
@@ -533,3 +488,4 @@ with tab3:
             st.download_button("⬇  4× Videonu Endir (MP4)", rb3,
                 f"enhanced_{video_file.name.rsplit('.',1)[0]}.mp4",
                 "video/mp4", use_container_width=True)
+            
