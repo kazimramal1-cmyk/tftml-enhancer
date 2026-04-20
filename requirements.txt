@@ -1,4 +1,5 @@
-streamlit>=1.32.0
+streamlit
 requests
-Pillow
+Pillow<10.0.0
 numpy
+streamlit-drawable-canvas
