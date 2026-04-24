@@ -9,7 +9,7 @@ from PIL import Image, ImageEnhance
 import numpy as np
 
 API_URL  = "https://stacie-apertural-ardelia.ngrok-free.dev"
-LOGO_B64 = "logo.png.jpeg"
+LOGO_B64 = ""
     "🏛️ Big Ben":        "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=1280&q=80",
     "🌌 Kainat":         "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1280&q=80",
     "🌊 Okean":          "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=1280&q=80",
