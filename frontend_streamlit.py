@@ -1,38 +1,35 @@
 # ================================================================
-#  frontend_streamlit.py — TFTML ENHANCER AI v9
-#  Şəkil + Video | SAM yoxdur
+#  frontend_streamlit.py — TFTML ENHANCER AI (Video Expert)
+#  RAMAL KAZIMZADE | H.264 video + Progress bar + st.video
 # ================================================================
 
 import streamlit as st
-
-if not hasattr(st, 'image_to_url'):
-    st.image_to_url = lambda x: x
-
-import requests, base64, io, time, threading, os
+import requests
+import base64
+import hashlib
+import io
+import time
+import threading
 from PIL import Image, ImageEnhance
-import numpy as np
 
-# ══════════════════════════════════════════════════════
-#  KONFİQURASİYA
-# ══════════════════════════════════════════════════════
-API_URL   = "https://stacie-apertural-ardelia.ngrok-free.dev"  # ← Colab URL-ini dəyiş
-LOGO_FILE = "logo_png.jpeg"
+# ── Konfiqurasiya ────────────────────────────────────────────────
+API_URL = "https://stacie-apertural-ardelia.ngrok-free.dev"
 
-def load_logo():
-    """logo_png.jpeg-i base64-ə çevirir. Tapılmasa None."""
-    try:
-        if os.path.exists(LOGO_FILE):
-            with open(LOGO_FILE, "rb") as f:
-                return base64.b64encode(f.read()).decode()
-    except Exception:
-        pass
-    return None
+# Logo — base64 (GitHub-da logo.png.jpeg olmasa belə işləyir)
+LOGO_B64 = "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"
 
-LOGO_B64 = load_logo()
+BACKGROUNDS = {
+    "🦕 Dinozavrlar":  "https://images.unsplash.com/photo-1606206873764-fd15e242ff80?w=1280&q=80",
+    "🏛️ Big Ben":      "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=1280&q=80",
+    "🌌 Kainat":       "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1280&q=80",
+    "🌊 Okean":        "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=1280&q=80",
+    "🗼 Paris":        "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1280&q=80",
+    "🏔️ Dağlar":       "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1280&q=80",
+    "🌸 Çiçəklər":     "https://images.unsplash.com/photo-1490750967868-88df5691cc9e?w=1280&q=80",
+    "🌆 Gecə şəhər":   "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1280&q=80",
+    "🎨 Öz fonum":     "custom",
+}
 
-# ══════════════════════════════════════════════════════
-#  PAGE CONFIG
-# ══════════════════════════════════════════════════════
 st.set_page_config(
     page_title="TFTML ENHANCER AI",
     page_icon="🎓",
@@ -40,51 +37,54 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ══════════════════════════════════════════════════════
-#  CSS
-# ══════════════════════════════════════════════════════
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
 
 #MainMenu,footer,header,.stDeployButton,[data-testid="stToolbar"]{display:none!important}
 .stApp{background:#0d0f0e!important;font-family:'DM Sans',sans-serif!important}
-.block-container{max-width:980px!important;padding:1.5rem!important;margin:0 auto!important}
-.stApp::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+.block-container{max-width:960px!important;padding:1.5rem 1.5rem 2rem!important;margin:0 auto!important}
+.stApp::before{content:'';position:fixed;inset:0;z-index:0;
   background:radial-gradient(ellipse at 15% 40%,rgba(26,107,47,.12) 0%,transparent 55%),
-             radial-gradient(ellipse at 85% 20%,rgba(224,112,32,.10) 0%,transparent 55%)}
+             radial-gradient(ellipse at 85% 20%,rgba(224,112,32,.10) 0%,transparent 55%);
+  pointer-events:none}
 
-.rk-brand{position:fixed;top:16px;left:20px;z-index:999;
-  font-size:.72rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
-  color:#e07020;text-decoration:underline;text-underline-offset:4px}
+/* Brand */
+.rk-brand{position:fixed;top:14px;left:18px;z-index:999;font-size:.7rem;font-weight:700;
+  letter-spacing:.2em;text-transform:uppercase;color:#e07020;text-decoration:underline;
+  text-underline-offset:4px;text-decoration-color:rgba(224,112,32,.4);transition:all .2s}
+.rk-brand:hover{color:#f59030;text-shadow:0 0 12px rgba(224,112,32,.5)}
 
-.logo-wrap{display:flex;justify-content:center;margin:1.5rem 0 .6rem}
-.logo-img{width:110px;height:110px;border-radius:50%;object-fit:cover;
+/* Header */
+.logo-wrap{display:flex;flex-direction:column;align-items:center;gap:.8rem;margin:2rem 0 1.2rem}
+.logo-circle{width:114px;height:114px;border-radius:50%;object-fit:cover;
   animation:glowPulse 3s ease-in-out infinite}
-.logo-emoji{width:110px;height:110px;border-radius:50%;background:#1a6b2f;
-  display:flex;align-items:center;justify-content:center;font-size:3rem;
-  margin:auto;animation:glowPulse 3s ease-in-out infinite}
 @keyframes glowPulse{
-  0%,100%{box-shadow:0 0 0 3px #0d0f0e,0 0 0 5px #1a6b2f,0 0 25px rgba(26,107,47,.55)}
-  50%    {box-shadow:0 0 0 3px #0d0f0e,0 0 0 5px #e07020,0 0 30px rgba(224,112,32,.6)}}
-
-.main-title{font-family:'Playfair Display',serif;font-size:clamp(1.2rem,3vw,1.8rem);
-  font-weight:700;text-align:center;color:#f0f0f0;margin:.2rem 0 .1rem}
+  0%,100%{box-shadow:0 0 0 3px #0d0f0e,0 0 0 5px #1a6b2f,0 0 0 7px #0d0f0e,
+           0 0 28px rgba(26,107,47,.55),0 0 55px rgba(224,112,32,.2)}
+  50%{box-shadow:0 0 0 3px #0d0f0e,0 0 0 5px #e07020,0 0 0 7px #0d0f0e,
+      0 0 35px rgba(224,112,32,.65),0 0 70px rgba(26,107,47,.28)}}
+.main-title{font-family:'Playfair Display',serif;font-size:clamp(1.3rem,3.5vw,2rem);
+  font-weight:700;text-align:center;color:#f0f0f0;letter-spacing:.05em;margin:0}
 .main-title span{color:#e07020}
-.sname{text-align:center;font-size:.82rem;color:#888;line-height:1.6;margin:.1rem 0}
-.sname b{color:#bbb}
-.ssub{text-align:center;font-size:.62rem;color:#444;letter-spacing:.15em;
-  text-transform:uppercase;margin-bottom:1.4rem}
+.school-name{text-align:center;font-size:.82rem;color:#888;line-height:1.65}
+.school-name b{color:#bbb}
+.school-sub{text-align:center;font-size:.62rem;color:#444;letter-spacing:.15em;
+  text-transform:uppercase}
 
-.status-ok {background:linear-gradient(135deg,#0a1f10,#0d2b15);border:1px solid #1a6b2f;
-  border-radius:12px;padding:.55rem 1.2rem;font-size:.78rem;color:#4dff88;font-weight:600;margin-bottom:1rem}
+/* Status */
+.status-ok{background:linear-gradient(135deg,#0a1f10,#0d2b15);border:1px solid #1a6b2f;
+  border-radius:12px;padding:.55rem 1.2rem;font-size:.78rem;color:#4dff88;
+  font-weight:600;margin-bottom:1rem}
 .status-err{background:linear-gradient(135deg,#1f0a0a,#2b0d0d);border:1px solid #6b1a1a;
-  border-radius:12px;padding:.55rem 1.2rem;font-size:.78rem;color:#ff6b6b;font-weight:600;margin-bottom:1rem}
+  border-radius:12px;padding:.55rem 1.2rem;font-size:.78rem;color:#ff6b6b;
+  font-weight:600;margin-bottom:1rem}
 
-[data-testid="stTabs"] [data-testid="stTab"]{
-  background:transparent!important;border:none!important;color:#666!important;
-  font-weight:600!important;font-size:.85rem!important;padding:.6rem 1.2rem!important;
-  border-radius:10px 10px 0 0!important}
+/* Tabs */
+[data-testid="stTabs"] [data-testid="stTab"]{background:transparent!important;
+  border:none!important;color:#666!important;font-weight:600!important;
+  font-size:.85rem!important;padding:.6rem 1.2rem!important;
+  border-radius:10px 10px 0 0!important;transition:all .2s!important}
 [data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"]{
   background:linear-gradient(135deg,#1a6b2f,#0d3d1a)!important;
   color:#4dff88!important;border-bottom:2px solid #2d9e4a!important}
@@ -92,282 +92,436 @@ st.markdown("""
   border-radius:0 16px 16px 16px!important;
   background:linear-gradient(145deg,#111311,#0f110f)!important;padding:1.5rem!important}
 
+/* Card */
+.card{background:linear-gradient(145deg,#131613,#111311);border-radius:16px;
+  border:1.5px solid #1e251e;padding:1.5rem;margin-bottom:1.2rem;
+  box-shadow:0 4px 30px rgba(0,0,0,.4)}
+
+/* File uploader */
+[data-testid="stFileUploader"]{border:2px dashed transparent!important;
+  border-radius:16px!important;
+  background:linear-gradient(#131613,#131613) padding-box,
+             linear-gradient(135deg,#1a6b2f,#e07020,#1a6b2f) border-box!important;
+  padding:1.2rem!important;transition:all .3s!important}
+[data-testid="stFileUploader"] *{color:#888!important}
+[data-testid="stFileUploader"] svg{fill:#e07020!important}
+[data-testid="stFileUploader"] button{
+  background:linear-gradient(135deg,#1a6b2f,#2d9e4a)!important;
+  color:#fff!important;border:none!important;border-radius:8px!important}
+
+/* Button */
 .stButton>button{font-family:'DM Sans',sans-serif!important;font-weight:700!important;
-  background:linear-gradient(135deg,#1a6b2f,#2d9e4a)!important;color:#fff!important;
-  border:none!important;border-radius:12px!important;padding:.85rem 2rem!important;
-  width:100%!important;box-shadow:0 4px 20px rgba(26,107,47,.4)!important;transition:transform .2s!important}
-.stButton>button:hover{transform:scale(1.03) translateY(-2px)!important}
+  font-size:.95rem!important;background:linear-gradient(135deg,#1a6b2f,#2d9e4a)!important;
+  color:#fff!important;border:none!important;border-radius:12px!important;
+  padding:.85rem 2rem!important;width:100%!important;
+  box-shadow:0 4px 20px rgba(26,107,47,.4)!important;
+  transition:transform .2s,box-shadow .2s!important}
+.stButton>button:hover{transform:scale(1.03) translateY(-2px)!important;
+  box-shadow:0 8px 30px rgba(45,158,74,.55)!important}
 .stButton>button:disabled{opacity:.35!important}
 
-.stProgress>div>div{background:linear-gradient(90deg,#1a6b2f,#e07020)!important;border-radius:3px!important}
-[data-testid="stImage"] img{border-radius:12px!important;border:1.5px solid #1e251e!important;width:100%!important}
-video{border-radius:12px!important;border:1.5px solid #1e251e!important;width:100%!important}
+/* Slider */
+[data-testid="stSlider"]>div>div>div{background:#1a6b2f!important}
+[data-testid="stSlider"] label{color:#aaa!important;font-size:.78rem!important}
 
+/* Fx panel */
+.fx-panel{background:#0d1510;border:1px solid #1a3320;border-radius:12px;
+  padding:1rem 1.2rem;margin:.5rem 0}
+.fx-title{font-size:.68rem;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:#4dff88;margin-bottom:.7rem}
+
+/* Video warn */
+.video-warn{background:linear-gradient(135deg,#1a1200,#2b1e00);border:1px solid #6b4e00;
+  border-radius:14px;padding:1rem 1.4rem;font-size:.82rem;color:#ffcc44;
+  font-weight:600;margin:1rem 0;line-height:1.7;text-align:center}
+
+/* Video info */
+.video-info{background:#0d1a10;border:1px solid #1a6b2f;border-radius:12px;
+  padding:.7rem 1.2rem;font-size:.78rem;color:#4dff88;margin:.6rem 0}
+
+/* Progress */
+.stProgress>div>div{background:linear-gradient(90deg,#1a6b2f,#e07020)!important;
+  border-radius:3px!important}
+
+/* Images */
+[data-testid="stImage"] img{border-radius:12px!important;
+  border:1.5px solid #1e251e!important;width:100%!important}
+
+/* Badges */
 .badge{display:inline-block;font-size:.58rem;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;padding:.2rem .55rem;border-radius:4px;margin-bottom:.4rem}
 .b-orig{background:rgba(80,80,80,.3);color:#aaa;border:1px solid #333}
-.b-enh {background:rgba(26,107,47,.4);color:#4dff88;border:1px solid #1a6b2f}
+.b-enh{background:rgba(26,107,47,.4);color:#4dff88;border:1px solid #1a6b2f}
+.b-4x{background:linear-gradient(135deg,#e07020,#f59030);color:#fff;
+  font-size:.6rem;font-weight:700;letter-spacing:.1em;padding:.22rem .65rem;border-radius:18px}
 
-.info-box{background:#0d1510;border:1px solid #1a3320;border-radius:10px;
-  padding:.7rem 1rem;font-size:.76rem;color:#4dff88;margin:.5rem 0}
-.warn-box{background:linear-gradient(135deg,#1a1200,#2b1e00);border:1px solid #6b4e00;
-  border-radius:12px;padding:.8rem 1.2rem;font-size:.78rem;color:#ffcc44;
-  line-height:1.7;margin:.6rem 0;text-align:center}
-
-.stDownloadButton>button{font-weight:600!important;font-size:.82rem!important;
-  border-radius:10px!important;padding:.6rem 1.2rem!important;width:100%!important;
-  background:#111!important;border:1.5px solid #1e251e!important;color:#aaa!important}
+/* Download */
+.stDownloadButton>button{font-family:'DM Sans',sans-serif!important;
+  font-weight:600!important;font-size:.82rem!important;border-radius:10px!important;
+  padding:.6rem 1.2rem!important;width:100%!important;background:#111!important;
+  border:1.5px solid #1e251e!important;color:#aaa!important;transition:all .2s!important}
 .stDownloadButton>button:hover{border-color:#2d9e4a!important;color:#4dff88!important}
-[data-testid="stSlider"]>div>div>div{background:#1a6b2f!important}
+
+.spin-msg{text-align:center;font-size:.95rem;font-weight:600;color:#e07020;padding:.7rem}
+[data-testid="stCaptionContainer"]{color:#555!important;font-size:.7rem!important}
+video{border-radius:12px!important;border:1.5px solid #1e251e!important;width:100%!important}
 </style>
 <div class="rk-brand">RAMAL KAZIMZADE</div>
 """, unsafe_allow_html=True)
 
-# ══════════════════════════════════════════════════════
-#  HEADER
-# ══════════════════════════════════════════════════════
-if LOGO_B64:
-    st.markdown(
-        f'<div class="logo-wrap"><img class="logo-img" src="data:image/jpeg;base64,{LOGO_B64}"></div>',
-        unsafe_allow_html=True)
-else:
-    st.markdown('<div class="logo-wrap"><div class="logo-emoji">🎓</div></div>',
-                unsafe_allow_html=True)
+# ── Yardımçı funksiyalar ─────────────────────────────────────────
+HDR = {"bypass-tunnel-reminder": "yes", "ngrok-skip-browser-warning": "true"}
 
-st.markdown("""
-<div class="main-title">TFTML <span>ENHANCER</span> AI</div>
-<div class="sname">K. Ağayev adına <b>Biləsuvar Şəhər</b><br>
-Texniki Fənlər Təmayüllü İnternat Tipli Məktəb-Lisey</div>
-<div class="ssub">Real-ESRGAN 4× · H.264 Video · AI Şəkil Keyfiyyəti</div>
-""", unsafe_allow_html=True)
-
-# ── API statusu ──────────────────────────────────────
 def check_api(url):
     try:
-        r = requests.get(f"{url}/health", timeout=6,
-                         headers={"bypass-tunnel-reminder":"yes",
-                                  "ngrok-skip-browser-warning":"true"})
-        if r.status_code == 200:
-            return True, r.json()
+        r = requests.get(f"{url}/health", timeout=8, headers=HDR)
+        return r.status_code == 200, r.json() if r.status_code == 200 else {}
     except:
-        pass
-    return False, {}
+        return False, {}
 
-api_ok, api_info = check_api(API_URL)
+@st.cache_data(show_spinner=False, max_entries=50)
+def enhance_img_cached(img_bytes, api_url):
+    try:
+        resp = requests.post(f"{api_url}/enhance",
+            files={"image": ("img.png", img_bytes, "image/png")},
+            timeout=300, headers=HDR)
+        data = resp.json()
+        if data.get("success"):
+            return base64.b64decode(data["image"]), None
+        return None, data.get("error", "Xəta")
+    except requests.exceptions.Timeout:
+        return None, "Timeout (300s) — backend cavab vermədi"
+    except requests.exceptions.ConnectionError:
+        return None, "Bağlantı xətası — Colab-ı yoxlayın"
+    except Exception as e:
+        return None, f"{type(e).__name__}: {str(e)}"
 
-if api_ok:
-    gpu_txt = api_info.get("device", "CPU")
-    ffm_txt = "H.264 ✅" if api_info.get("ffmpeg") else "mp4v ⚠️"
-    st.markdown(
-        f'<div class="status-ok">✅ Backend Aktiv &nbsp;·&nbsp; '
-        f'🖥️ {gpu_txt} &nbsp;·&nbsp; 🎞️ {ffm_txt}</div>',
-        unsafe_allow_html=True)
-else:
-    st.markdown(
-        '<div class="status-err">⚠️ Backend offline — Colab-ı işə salın</div>',
-        unsafe_allow_html=True)
-
-# ══════════════════════════════════════════════════════
-#  KÖMƏKÇI FUNKSIYALAR
-# ══════════════════════════════════════════════════════
 def pil_to_bytes(img):
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=True)
     return buf.getvalue()
 
-def apply_effects(img, brightness, contrast):
-    return ImageEnhance.Contrast(
-        ImageEnhance.Brightness(img).enhance(brightness)).enhance(contrast)
+def apply_fx(img, br, co):
+    return ImageEnhance.Contrast(ImageEnhance.Brightness(img).enhance(br)).enhance(co)
 
-MSGS_IMG = ["🚀 AI mühərriki işə düşür...","🧪 Piksellər bərpa olunur...",
-            "✨ Möcüzə baş verir...","🎨 Rənglər canlanır...","⚡ GPU tam gücündə..."]
-MSGS_VID = ["🎬 Kadrlar ayrılır...","⚡ Hər kadr böyüdülür...",
-            "🔄 Video yığılır...","🎞️ H.264 çevrilir...","✨ Az qaldı..."]
+@st.cache_data(show_spinner=False)
+def fetch_bg(url):
+    return Image.open(io.BytesIO(requests.get(url, timeout=15).content)).convert("RGBA")
 
-HEADERS = {"bypass-tunnel-reminder":"yes","ngrok-skip-browser-warning":"true"}
+def composite_bg(fg, bg):
+    try:
+        from rembg import remove as r
+        no_bg = Image.open(io.BytesIO(r(pil_to_bytes(fg)))).convert("RGBA")
+        return Image.alpha_composite(bg.resize(no_bg.size, Image.LANCZOS).convert("RGBA"), no_bg).convert("RGB")
+    except ImportError:
+        st.warning("⚠️ rembg yoxdur"); return fg
 
-# ══════════════════════════════════════════════════════
-#  TABLƏR
-# ══════════════════════════════════════════════════════
+MSGS = ["🚀 AI mühərriki işə düşür...","🧪 Piksellər bərpa olunur...",
+        "✨ Möcüzə baş verir...","🎨 Rənglər canlanır...","⚡ GPU tam gücündə..."]
+
+VID_MSGS = [
+    "🎬 Video kadrlara ayrılır...",
+    "⚡ GPU hər kadrı 4× artırır...",
+    "🔄 H.264 ilə kodlaşdırılır...",
+    "✨ Son mərhələ — tamamlanır...",
+    "📦 Video hazırlanır...",
+]
+
+def spinner_th(mb, msgs, stop, interval=2):
+    i = 0
+    while not stop[0]:
+        mb.markdown(f'<div class="spin-msg">{msgs[i%len(msgs)]}</div>',
+                    unsafe_allow_html=True)
+        time.sleep(interval)
+        i += 1
+
+# ── Header ───────────────────────────────────────────────────────
+st.markdown(f"""
+<div class="logo-wrap">
+  <img class="logo-circle" src="data:image/jpeg;base64,{LOGO_B64}" alt="logo">
+  <div class="main-title">TFTML <span>ENHANCER</span> AI</div>
+  <div class="school-name">K. Ağayev adına <b>Biləsuvar Şəhər</b><br>
+  Texniki Fənlər Təmayüllü İnternat Tipli Məktəb-Lisey</div>
+  <div class="school-sub">AI Şəkil · Video Keyfiyyət Artırma | Real-ESRGAN 4× · H.264</div>
+</div>
+""", unsafe_allow_html=True)
+
+api_ok, api_info = check_api(API_URL)
+if api_ok:
+    ffmpeg_ok = api_info.get("ffmpeg", False)
+    gpu_name  = api_info.get("gpu_name", "CPU")
+    st.markdown(
+        f'<div class="status-ok">✅ Backend Online · {gpu_name} · '
+        f'FFmpeg {"✅" if ffmpeg_ok else "⚠️"}</div>',
+        unsafe_allow_html=True
+    )
+else:
+    st.markdown(
+        '<div class="status-err">⚠️ Backend offline — Colab-ı işə salın</div>',
+        unsafe_allow_html=True
+    )
+
 tab1, tab2 = st.tabs(["🖼️  Şəkil Artır", "🎬  Video Artır"])
 
-# ══════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════
 #  TAB 1 — ŞƏKİL
-# ══════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════
 with tab1:
-    uploaded  = st.file_uploader("📸  Şəkil seçin (JPG, PNG, WEBP, BMP)",
-                                  type=["jpg","jpeg","png","webp","bmp"], key="img_up")
-    final_img = None
+    up1 = st.file_uploader("📸  Şəkil seçin",
+        type=["jpg","jpeg","png","webp","bmp"], key="u1")
+    fim = None
 
-    if uploaded:
-        orig_pil = Image.open(uploaded).convert("RGB")
-        col_prev, col_fx = st.columns([3, 2])
+    if up1:
+        op = Image.open(up1).convert("RGB")
+        col_p, col_f = st.columns([3, 2])
 
-        with col_fx:
-            with st.expander("✂️ Kəsim", expanded=False):
-                w, h = orig_pil.size
-                c1, c2 = st.columns(2)
-                with c1:
-                    cl = st.number_input("Sol",    0, w-10, 0, step=5, key="cl")
-                    ct = st.number_input("Yuxarı", 0, h-10, 0, step=5, key="ct")
-                with c2:
-                    cr = st.number_input("Sağ",   10, w, w, step=5, key="cr")
-                    cb = st.number_input("Aşağı", 10, h, h, step=5, key="cb")
+        with col_f:
+            st.markdown('<div class="fx-panel"><div class="fx-title">✂️ Kəsim</div>', unsafe_allow_html=True)
+            w, h = op.size
+            a, b = st.columns(2)
+            with a:
+                cl = st.number_input("Sol",    0, w-10, 0, step=5, key="cl")
+                ct = st.number_input("Yuxarı", 0, h-10, 0, step=5, key="ct")
+            with b:
+                cr = st.number_input("Sağ",   10, w, w, step=5, key="cr")
+                cb = st.number_input("Aşağı", 10, h, h, step=5, key="cb")
+            st.markdown('</div>', unsafe_allow_html=True)
 
-            with st.expander("🎨 Effektlər", expanded=True):
-                brightness = st.slider("☀️ Parlaqlıq", 0.5, 2.0, 1.0, 0.05, key="br")
-                contrast   = st.slider("🌗 Kontrast",  0.5, 2.0, 1.0, 0.05, key="co")
+            st.markdown('<div class="fx-panel"><div class="fx-title">🎨 Effektlər</div>', unsafe_allow_html=True)
+            br = st.slider("☀️ Parlaqlıq", 0.5, 2.0, 1.0, 0.05, key="br")
+            co = st.slider("🌗 Kontrast",  0.5, 2.0, 1.0, 0.05, key="co")
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        with col_prev:
-            final_img = apply_effects(orig_pil.crop((cl, ct, cr, cb)), brightness, contrast)
+            st.markdown('<div class="fx-panel"><div class="fx-title">🖼️ Arxa Fon</div>', unsafe_allow_html=True)
+            bgc = st.selectbox("Fon", list(BACKGROUNDS.keys()), key="bgc")
+            abg = st.checkbox("✅ Arxa fonu dəyişdir", key="abg")
+            cbg = None
+            if BACKGROUNDS[bgc] == "custom":
+                cf = st.file_uploader("Öz fonunuzu yükləyin",
+                    type=["jpg","jpeg","png","webp"], key="cf", label_visibility="visible")
+                if cf: cbg = Image.open(cf).convert("RGBA")
+            else:
+                try:
+                    st.image(fetch_bg(BACKGROUNDS[bgc]).convert("RGB").resize((220,124),Image.LANCZOS),
+                             use_container_width=True)
+                except: pass
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with col_p:
+            ed = apply_fx(op.crop((cl, ct, cr, cb)), br, co)
+            if abg:
+                try:
+                    bi  = cbg if BACKGROUNDS[bgc] == "custom" else fetch_bg(BACKGROUNDS[bgc])
+                    fim = composite_bg(ed, bi) if bi else ed
+                except Exception as e:
+                    st.error(f"Fon: {e}"); fim = ed
+            else:
+                fim = ed
             st.markdown('<p style="text-align:center;font-size:.68rem;color:#555;'
-                        'text-transform:uppercase;margin-bottom:.3rem">Önizləmə</p>',
-                        unsafe_allow_html=True)
-            st.image(final_img, use_container_width=True)
-            st.caption(f"📐 {final_img.width}×{final_img.height} px")
+                'letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem">Önizləmə</p>',
+                unsafe_allow_html=True)
+            st.image(fim, use_container_width=True)
+            st.caption(f"📐 {fim.width}×{fim.height} px")
 
-    btn1 = st.button("✨  AI ilə 4× Keyfiyyəti Artır",
-                     disabled=not (uploaded and api_ok and final_img is not None),
-                     key="btn1")
-
-    if btn1 and final_img:
-        send_bytes = pil_to_bytes(final_img)
-        prog = st.progress(0); msg_box = st.empty(); stop = [False]
-
-        def spin_img():
-            i = 0
-            while not stop[0]:
-                msg_box.markdown(
-                    f'<div style="text-align:center;font-size:.95rem;font-weight:600;'
-                    f'color:#e07020;padding:.7rem">{MSGS_IMG[i%len(MSGS_IMG)]}</div>',
-                    unsafe_allow_html=True)
-                time.sleep(2); i += 1
-        threading.Thread(target=spin_img, daemon=True).start()
-        prog.progress(15, "Göndərilir...")
-
-        rb, err = None, None
-        try:
-            resp = requests.post(f"{API_URL}/enhance",
-                                 files={"image":("img.png", send_bytes, "image/png")},
-                                 timeout=300, headers=HEADERS)
-            d = resp.json()
-            rb  = base64.b64decode(d["image"]) if d.get("success") else None
-            err = None if d.get("success") else d.get("error","Xəta")
-        except Exception as e:
-            err = str(e)
-
-        stop[0] = True; msg_box.empty(); prog.progress(100)
+    b1 = st.button("✨  AI ilə 4× Keyfiyyəti Artır",
+                   disabled=not (up1 and api_ok and fim is not None), key="b1")
+    if b1 and fim:
+        sb  = pil_to_bytes(fim)
+        hh  = hashlib.md5(sb).hexdigest()
+        pg  = st.progress(0)
+        mb  = st.empty()
+        stp = [False]
+        threading.Thread(target=spinner_th, args=(mb, MSGS, stp), daemon=True).start()
+        pg.progress(20, "Colab-a göndərilir...")
+        rb, err = enhance_img_cached(sb, API_URL)
+        stp[0] = True; mb.empty(); pg.progress(100, "Hazır! 🎉")
 
         if err:
             st.error(f"❌ {err}")
         else:
-            st.balloons(); st.success("🎉 Tamamlandı!")
-            result_pil = Image.open(io.BytesIO(rb))
+            st.balloons()
+            if st.session_state.get(f"c_{hh}"):
+                st.markdown(
+                    '<div style="background:#0a1520;border:1px solid #1a4a7a;border-radius:8px;'
+                    'padding:.35rem .9rem;font-size:.7rem;color:#5bb3ff;font-weight:600;'
+                    'display:inline-block;margin-bottom:.4rem">⚡ Cache</div>',
+                    unsafe_allow_html=True
+                )
+            st.session_state[f"c_{hh}"] = True
+            st.success("🎉 Tamamlandı!")
+            rp = Image.open(io.BytesIO(rb))
+            st.markdown(
+                '<div class="card"><div style="display:flex;align-items:center;'
+                'justify-content:space-between;margin-bottom:1rem">'
+                '<span style="font-family:\'Playfair Display\',serif;font-size:.95rem;color:#eee">Nəticə</span>'
+                '<span class="b-4x">4× Enhanced</span></div>',
+                unsafe_allow_html=True
+            )
             c1, c2 = st.columns(2)
             with c1:
-                st.markdown('<p style="text-align:center"><span class="badge b-orig">ƏVVƏLKİ</span></p>',
+                st.markdown('<p style="text-align:center"><span class="badge b-orig">ORİGİNAL</span></p>',
                             unsafe_allow_html=True)
-                st.image(final_img, use_container_width=True)
-                st.caption(f"📐 {final_img.width}×{final_img.height}")
+                st.image(fim, use_container_width=True)
             with c2:
                 st.markdown('<p style="text-align:center"><span class="badge b-enh">4× AI</span></p>',
                             unsafe_allow_html=True)
-                st.image(result_pil, use_container_width=True)
-                st.caption(f"📐 {result_pil.width}×{result_pil.height}")
-            st.download_button("⬇  Artırılmış Şəkli Endir", rb,
-                f"enhanced_{uploaded.name.rsplit('.',1)[0]}.png",
-                "image/png", use_container_width=True)
+                st.image(rp, use_container_width=True)
+            d1, d2 = st.columns(2)
+            with d1:
+                st.download_button("⬇  Artırılmışı Endir", rb,
+                    f"enhanced_{up1.name.rsplit('.',1)[0]}.png", "image/png",
+                    use_container_width=True)
+            with d2:
+                st.download_button("⬇  Redaktəlini Endir", sb,
+                    f"edited_{up1.name.rsplit('.',1)[0]}.png", "image/png",
+                    use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-# ══════════════════════════════════════════════════════
-#  TAB 2 — VİDEO
-# ══════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════
+#  TAB 2 — VİDEO (H.264 + Progress)
+# ══════════════════════════════════════════════════════════════════
 with tab2:
     st.markdown(
-        '<div class="warn-box">⚠️ Video emalı bir neçə dəqiqə çəkə bilər.<br>'
-        'Emal zamanı pəncərəni bağlamayın! Böyük videolar üçün GPU tövsiyə edilir.</div>',
-        unsafe_allow_html=True)
+        '<div class="video-warn">'
+        '⚠️ Video emalı uzun müddət çəkə bilər (kadr sayına görə).<br>'
+        'GPU aktiv olduqda daha sürətli işləyir. Pəncərəni bağlamayın!'
+        '</div>', unsafe_allow_html=True
+    )
 
-    video_file = st.file_uploader("🎬  Video seçin (MP4, MOV, AVI)",
-                                   type=["mp4","mov","avi","mkv"], key="vid_up")
-    if video_file:
-        size_mb = video_file.size / 1024 / 1024
-        st.video(video_file)
+    up2 = st.file_uploader("🎬  Video seçin",
+        type=["mp4","mov","avi","mkv"], key="u2")
+
+    if up2:
+        # Orijinal video önizlə
+        st.video(up2)
+        size_mb = up2.size / 1024 / 1024
         st.markdown(
-            f'<div class="info-box">📦 {video_file.name} &nbsp;·&nbsp; {size_mb:.1f} MB</div>',
-            unsafe_allow_html=True)
+            f'<div class="video-info">'
+            f'🎬 <b>{up2.name}</b> &nbsp;|&nbsp; '
+            f'📦 {size_mb:.1f} MB &nbsp;|&nbsp; '
+            f'⏱️ Təxmini emal vaxtı: ~{max(1, int(size_mb*2))} dəqiqə</div>',
+            unsafe_allow_html=True
+        )
 
-        if size_mb > 200:
-            st.warning("⚠️ Fayl 200 MB-dan böyükdür. Emal uzun çəkə bilər.")
+    b2 = st.button("🎬  Video 4× Keyfiyyətini Artır (H.264)",
+                   disabled=not (up2 and api_ok), key="b2")
 
-    btn2 = st.button("🎬  Video 4× Keyfiyyətini Artır",
-                     disabled=not (video_file and api_ok), key="btn2")
+    if b2 and up2:
+        vb = up2.read()
+        st.markdown(
+            '<div class="video-warn">'
+            '🔄 Video kadr-kadr emal edilir — H.264 kodlaşdırılacaq.<br>'
+            'Bu pəncərəni bağlamayın!'
+            '</div>', unsafe_allow_html=True
+        )
 
-    if btn2 and video_file:
-        vid_bytes = video_file.read()
-        prog_v    = st.progress(0)
-        msg_v     = st.empty()
-        pct_box   = st.empty()
-        stop_v    = [False]
+        # Progress göstəriciləri
+        pg2  = st.progress(0, "Video backend-ə göndərilir...")
+        mb2  = st.empty()
+        eta2 = st.empty()
+        stp2 = [False]
 
-        def spin_vid():
-            i = 0
-            while not stop_v[0]:
-                msg_v.markdown(
-                    f'<div style="text-align:center;font-size:.95rem;font-weight:600;'
-                    f'color:#e07020;padding:.7rem">{MSGS_VID[i%len(MSGS_VID)]}</div>',
-                    unsafe_allow_html=True)
-                time.sleep(4); i += 1
-        threading.Thread(target=spin_vid, daemon=True).start()
+        # Spinner
+        threading.Thread(
+            target=spinner_th,
+            args=(mb2, VID_MSGS, stp2, 3),
+            daemon=True
+        ).start()
 
-        # Progress simulasiya (real progress server-sidedədir)
+        # Animasiyalı progress
+        start_t = time.time()
         def fake_progress():
+            """Video emal müddətini simulyasiya edir"""
             p = 5
-            while not stop_v[0] and p < 90:
-                time.sleep(8)
-                p = min(p + 5, 90)
-                prog_v.progress(p, f"Emal edilir... ~{p}%")
+            while not stp2[0] and p < 90:
+                time.sleep(4)
+                p = min(p + 3, 90)
+                elapsed = time.time() - start_t
+                pg2.progress(p, f"Emal edilir... ({int(elapsed//60)}d {int(elapsed%60)}s)")
+                eta2.markdown(
+                    f'<div style="font-size:.72rem;color:#666;text-align:center">'
+                    f'⏱️ Keçən vaxt: {int(elapsed//60):02d}:{int(elapsed%60):02d}</div>',
+                    unsafe_allow_html=True
+                )
+
         threading.Thread(target=fake_progress, daemon=True).start()
 
-        prog_v.progress(5, "Video göndərilir...")
-        ext = video_file.name.rsplit(".", 1)[-1].lower()
-
-        rb_v, err_v, meta = None, None, {}
+        # API çağırışı
         try:
-            resp_v = requests.post(
+            resp = requests.post(
                 f"{API_URL}/enhance-video",
-                files={"video": (video_file.name, vid_bytes, f"video/{ext}")},
-                timeout=1800,       # 30 dəqiqə — uzun videolar üçün
-                headers=HEADERS)
-            d = resp_v.json()
-            if d.get("success"):
-                rb_v = base64.b64decode(d["video"])
-                meta = d
-            else:
-                err_v = d.get("error","Naməlum xəta")
+                files={"video": (up2.name, vb, "video/mp4")},
+                timeout=1800,  # 30 dəqiqə
+                headers=HDR
+            )
+            stp2[0] = True
+            mb2.empty()
+            eta2.empty()
+
+            try:
+                data = resp.json()
+            except Exception:
+                pg2.progress(100, "Xəta!")
+                st.error(f"❌ JSON parse xətası (HTTP {resp.status_code}): {resp.text[:300]}")
+                data = None
+
+            if data:
+                if data.get("success"):
+                    pg2.progress(100, "Video hazır! 🎉")
+                    elapsed = time.time() - start_t
+                    st.balloons()
+                    st.success(
+                        f"🎉 Tamamlandı! "
+                        f"{data.get('original','?')} → {data.get('enhanced','?')} | "
+                        f"{data.get('frames','?')} kadr | "
+                        f"H.264 {data.get('size_mb','?')} MB | "
+                        f"⏱️ {int(elapsed//60)}d {int(elapsed%60)}s"
+                    )
+
+                    video_bytes = base64.b64decode(data["image"])
+
+                    # Video göstər
+                    st.markdown(
+                        '<div class="card">'
+                        '<div style="font-family:\'Playfair Display\',serif;'
+                        'font-size:.95rem;color:#eee;margin-bottom:1rem">'
+                        '🎬 Artırılmış Video (H.264)</div>',
+                        unsafe_allow_html=True
+                    )
+                    st.video(video_bytes)
+
+                    st.markdown(
+                        f'<div class="video-info">'
+                        f'✅ {data.get("original","?")} → <b>{data.get("enhanced","?")}</b> | '
+                        f'{data.get("frames","?")} kadr | '
+                        f'{data.get("fps","?")} FPS | '
+                        f'{data.get("size_mb","?")} MB</div>',
+                        unsafe_allow_html=True
+                    )
+
+                    st.download_button(
+                        "⬇  4× H.264 Videonu Endir",
+                        video_bytes,
+                        f"enhanced_{up2.name.rsplit('.',1)[0]}_4x.mp4",
+                        "video/mp4",
+                        use_container_width=True
+                    )
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                else:
+                    pg2.progress(100, "Xəta!")
+                    st.error(f"❌ {data.get('error','Naməlum xəta')}")
+
+        except requests.exceptions.Timeout:
+            stp2[0] = True
+            pg2.progress(100, "Timeout!")
+            st.error("❌ Timeout (30 dəqiqə) — video çox böyükdür. Daha qısa video sınayın.")
+        except requests.exceptions.ConnectionError:
+            stp2[0] = True
+            pg2.progress(100, "Xəta!")
+            st.error("❌ Bağlantı kəsildi — Colab-ı yoxlayın")
         except Exception as e:
-            err_v = str(e)
-
-        stop_v[0] = True
-        msg_v.empty(); pct_box.empty()
-
-        if err_v:
-            prog_v.progress(100, "Xəta!")
-            st.error(f"❌ {err_v}")
-        else:
-            prog_v.progress(100, "Video hazır! 🎉")
-            st.balloons()
-            st.success(
-                f"🎉 Video hazır! &nbsp; "
-                f"{meta.get('original','?')} → {meta.get('enhanced','?')} &nbsp;·&nbsp; "
-                f"{meta.get('frames','?')} kadr &nbsp;·&nbsp; "
-                f"{meta.get('fps','?')} FPS &nbsp;·&nbsp; "
-                f"Codec: {meta.get('codec','?')}")
-
-            # Videonu göstər
-            st.markdown("**📺 Nəticə:**")
-            st.video(rb_v)
-
-            st.download_button(
-                "⬇  4× Videonu Endir (MP4 H.264)", rb_v,
-                f"enhanced_{video_file.name.rsplit('.',1)[0]}.mp4",
-                "video/mp4", use_container_width=True)
+            stp2[0] = True
+            pg2.progress(100, "Xəta!")
+            st.error(f"❌ {type(e).__name__}: {str(e)}")
+            
