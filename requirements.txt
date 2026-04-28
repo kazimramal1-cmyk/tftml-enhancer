@@ -3,4 +3,9 @@ requests
 Pillow
 numpy
 opencv-python-headless
-rembg[cpu]
+rembg[gpu] 
+onnxruntime-gpu 
+basicsr
+realesrgan
+facexlib
+gfpgan
