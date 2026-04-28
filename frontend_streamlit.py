@@ -1,6 +1,6 @@
 # ================================================================
-#  frontend_streamlit.py — TFTML ENHANCER AI v4
-#  RAMAL KAZIMZADE | Düzəldilmiş + rembg tab əlavə edildi
+#  frontend_streamlit.py — TFTML ENHANCER AI
+#  RAMAL KAZIMZADE | Düzəldilmiş versiya
 # ================================================================
 
 import streamlit as st
@@ -11,14 +11,11 @@ import io
 import json
 import time
 import threading
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageDraw
 import numpy as np
 
-# ▼▼▼  Colab-dan kopyaladığınız ngrok URL-i buraya yazın  ▼▼▼
-API_URL = "https://YOUR_NGROK_URL_HERE"
-# ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-
-LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAB4AHgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL"
+API_URL  = "https://stacie-apertural-ardelia.ngrok-free.dev"
+LOGO_B64 = "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..."
 
 BACKGROUNDS = {
     "🦕 Dinozavrlar":  "https://images.unsplash.com/photo-1606206873764-fd15e242ff80?w=1280&q=80",
@@ -154,7 +151,9 @@ def safe_post(url, timeout=300, **kwargs):
     except requests.exceptions.ConnectionError:
         return None, "Bağlantı xətası — Colab-ın işlədiyinə əmin olun"
     except Exception as e:
-        return None, f"{type(e).__name__}: {str(e)}"
+        # SƏBƏB: type(e).name — Python-da belə atribut yoxdur.
+        # Həll: type(e)._name_ istifadə edilməlidir (ikiqat alt xətt).
+        return None, f"{type(e)._name_}: {str(e)}"
 
 
 @st.cache_data(show_spinner=False, max_entries=80)
@@ -163,7 +162,8 @@ def enhance_cached(img_bytes, api_url):
         resp = requests.post(
             f"{api_url}/enhance",
             files={"image": ("img.png", img_bytes, "image/png")},
-            timeout=300, headers=HDR
+            timeout=300,
+            headers=HDR
         )
         data = resp.json()
         if data.get("success"):
@@ -174,82 +174,34 @@ def enhance_cached(img_bytes, api_url):
     except requests.exceptions.ConnectionError:
         return None, "Bağlantı xətası"
     except Exception as e:
-        return None, f"{type(e).__name__}: {str(e)}"
+        # SƏBƏB: type(e).name — Python-da belə atribut yoxdur.
+        # Həll: type(e)._name_ istifadə edilməlidir (ikiqat alt xətt).
+        return None, f"{type(e)._name_}: {str(e)}"
 
 
 @st.cache_data(show_spinner=False, max_entries=10)
 def enhance_video_cached(vid_bytes, fname, api_url):
     try:
-        ext  = fname.rsplit(".", 1)[-1].lower() if "." in fname else "mp4"
-        mime = {"mp4": "video/mp4", "mov": "video/quicktime", "avi": "video/x-msvideo"}.get(ext, "video/mp4")
+        ext = fname.rsplit(".", 1)[-1].lower() if "." in fname else "mp4"
+        mime = {
+            "mp4": "video/mp4",
+            "mov": "video/quicktime",
+            "avi": "video/x-msvideo"
+        }.get(ext, "video/mp4")
         resp = requests.post(
             f"{api_url}/enhance-video",
             files={"video": (fname, vid_bytes, mime)},
-            timeout=600, headers=HDR
+            timeout=600,
+            headers=HDR
         )
         data = resp.json()
         if data.get("success"):
             return base64.b64decode(data["image"]), data, None
         return None, {}, data.get("error", "Xəta")
     except Exception as e:
-        return None, {}, f"{type(e).__name__}: {str(e)}"
-
-
-def remove_bg_request(img_bytes: bytes, api_url: str):
-    """
-    /process_rembg endpointinə şəkil göndərir.
-    Uğurlu: (bytes, None)
-    Xəta:   (None, "rembg xətası: [detal]")
-    """
-    # Əvvəlcə health yoxla — rembg aktiv deyilsə vaxt itirmə
-    try:
-        h = requests.get(f"{api_url}/health", timeout=6, headers=HDR).json()
-        if not h.get("rembg", True):
-            detail = h.get("rembg_error") or ""
-            return None, (
-                "rembg xətası: Serverdə rembg quraşdırılmayıb.\n"
-                "Həll: Colab-da `!pip install rembg onnxruntime` icra edin.\n"
-                + (f"Texniki səbəb: {detail}" if detail else "")
-            )
-    except Exception:
-        pass  # health əlçatmırsa sorğunu yenə də cəhd et
-
-    try:
-        resp = requests.post(
-            f"{api_url}/process_rembg",
-            files={"image": ("photo.png", img_bytes, "image/png")},
-            timeout=120, headers=HDR
-        )
-    except requests.exceptions.Timeout:
-        return None, "rembg xətası: Timeout (120s) — şəkil çox böyük ola bilər"
-    except requests.exceptions.ConnectionError:
-        return None, "rembg xətası: Bağlantı kəsildi — Colab-ı yoxlayın"
-    except Exception as e:
-        return None, f"rembg xətası: {type(e).__name__}: {e}"
-
-    try:
-        data = resp.json()
-    except Exception:
-        return None, f"rembg xətası: JSON parse alınmadı (HTTP {resp.status_code}): {resp.text[:200]}"
-
-    if resp.status_code == 503:
-        return None, f"rembg xətası: {data.get('error', 'Xidmət əlçatan deyil')}"
-    if resp.status_code == 415:
-        return None, f"rembg xətası: {data.get('error', 'Dəstəklənməyən fayl növü')}"
-    if resp.status_code == 400:
-        return None, f"rembg xətası: {data.get('error', 'Yanlış sorğu')}"
-    if not data.get("success"):
-        err    = data.get("error",  "Naməlum xəta")
-        detail = data.get("detail", "")
-        msg    = f"rembg xətası: {err}"
-        if detail:
-            msg += f"\n\nTexniki məlumat:\n{detail[:400]}"
-        return None, msg
-
-    try:
-        return base64.b64decode(data["image"]), None
-    except Exception as e:
-        return None, f"rembg xətası: Base64 dekodlama — {e}"
+        # SƏBƏB: type(e).name — Python-da belə atribut yoxdur.
+        # Həll: type(e)._name_ istifadə edilməlidir (ikiqat alt xətt).
+        return None, {}, f"{type(e)._name_}: {str(e)}"
 
 
 def check_api(url):
@@ -288,15 +240,21 @@ def composite_bg(fg, bg):
 
 
 MSGS = [
-    "🚀 AI mühərriki işə düşür...", "🧪 Piksellər bərpa olunur...",
-    "✨ Möcüzə baş verir...", "🎨 Rənglər canlanır...", "⚡ GPU tam gücündə..."
+    "🚀 AI mühərriki işə düşür...",
+    "🧪 Piksellər bərpa olunur...",
+    "✨ Möcüzə baş verir...",
+    "🎨 Rənglər canlanır...",
+    "⚡ GPU tam gücündə..."
 ]
 
 
 def spinner_thread(mb, stop):
     i = 0
     while not stop[0]:
-        mb.markdown(f'<div class="spin-msg">{MSGS[i % len(MSGS)]}</div>', unsafe_allow_html=True)
+        mb.markdown(
+            f'<div class="spin-msg">{MSGS[i % len(MSGS)]}</div>',
+            unsafe_allow_html=True
+        )
         time.sleep(2)
         i += 1
 
@@ -381,29 +339,33 @@ st.markdown(f"""
   <div class="main-title">TFTML <span>ENHANCER</span> AI</div>
   <div class="school-name">K. Ağayev adına <b>Biləsuvar Şəhər</b><br>
   Texniki Fənlər Təmayüllü İnternat Tipli Məktəb-Lisey</div>
-  <div class="school-sub">AI Şəkil · SAM · Fon Silmə · Video | Real-ESRGAN 4×</div>
+  <div class="school-sub">AI Şəkil · SAM Inpainting · Video | Real-ESRGAN 4×</div>
 </div>
 """, unsafe_allow_html=True)
 
 api_ok = check_api(API_URL)
 if api_ok:
-    st.markdown('<div class="status-ok">✅ Colab Backend — Online · GPU Aktiv</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="status-ok">✅ Colab Backend — Online · GPU Aktiv</div>',
+        unsafe_allow_html=True
+    )
 else:
-    st.markdown('<div class="status-err">⚠️ Colab Backend offline — Colab-ı işə salın</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="status-err">⚠️ Colab Backend offline — Colab-ı işə salın</div>',
+        unsafe_allow_html=True
+    )
 
-# ── 4 Tab ────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
-    "🖼️  Şəkil Artır",
-    "🧹  Ağıllı Sil (SAM)",
-    "✂️  Arxa Fon Sil",   # ← YENİ TAB
-    "🎬  Video Artır",
-])
+tab1, tab2, tab3 = st.tabs(["🖼️  Şəkil Artır", "🧹  Ağıllı Sil (SAM)", "🎬  Video Artır"])
 
 # ══════════════════════════════════════════════════════════════════
-#  TAB 1 — ŞƏKİL ARTIR
+#  TAB 1 — ŞƏKİL
 # ══════════════════════════════════════════════════════════════════
 with tab1:
-    up1 = st.file_uploader("📸  Şəkil seçin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="u1")
+    up1 = st.file_uploader(
+        "📸  Şəkil seçin",
+        type=["jpg", "jpeg", "png", "webp", "bmp"],
+        key="u1"
+    )
     fim = None
     if up1:
         op = Image.open(up1).convert("RGB")
@@ -413,29 +375,35 @@ with tab1:
             w, h = op.size
             a, b = st.columns(2)
             with a:
-                cl = st.number_input("Sol",    0, w - 10, 0, step=5, key="cl")
+                cl = st.number_input("Sol", 0, w - 10, 0, step=5, key="cl")
                 ct = st.number_input("Yuxarı", 0, h - 10, 0, step=5, key="ct")
             with b:
-                cr = st.number_input("Sağ",   10, w, w, step=5, key="cr")
+                cr = st.number_input("Sağ", 10, w, w, step=5, key="cr")
                 cb = st.number_input("Aşağı", 10, h, h, step=5, key="cb")
             st.markdown('</div>', unsafe_allow_html=True)
             st.markdown('<div class="fx-panel"><div class="fx-title">🎨 Effektlər</div>', unsafe_allow_html=True)
             br = st.slider("☀️ Parlaqlıq", 0.5, 2.0, 1.0, 0.05, key="br")
-            co = st.slider("🌗 Kontrast",  0.5, 2.0, 1.0, 0.05, key="co")
+            co = st.slider("🌗 Kontrast", 0.5, 2.0, 1.0, 0.05, key="co")
             st.markdown('</div>', unsafe_allow_html=True)
             st.markdown('<div class="fx-panel"><div class="fx-title">🖼️ Arxa Fon</div>', unsafe_allow_html=True)
             bgc = st.selectbox("Fon", list(BACKGROUNDS.keys()), key="bgc")
             abg = st.checkbox("✅ Arxa fonu dəyişdir", key="abg")
             cbg = None
             if BACKGROUNDS[bgc] == "custom":
-                cf = st.file_uploader("Öz fonunuzu yükləyin", type=["jpg", "jpeg", "png", "webp"],
-                                      key="cf", label_visibility="visible")
+                cf = st.file_uploader(
+                    "Öz fonunuzu yükləyin",
+                    type=["jpg", "jpeg", "png", "webp"],
+                    key="cf",
+                    label_visibility="visible"
+                )
                 if cf:
                     cbg = Image.open(cf).convert("RGBA")
             else:
                 try:
-                    st.image(fetch_bg(BACKGROUNDS[bgc]).convert("RGB").resize((220, 124), Image.LANCZOS),
-                             use_container_width=True)
+                    st.image(
+                        fetch_bg(BACKGROUNDS[bgc]).convert("RGB").resize((220, 124), Image.LANCZOS),
+                        use_container_width=True
+                    )
                 except Exception:
                     pass
             st.markdown('</div>', unsafe_allow_html=True)
@@ -443,21 +411,26 @@ with tab1:
             ed = apply_fx(op.crop((cl, ct, cr, cb)), br, co)
             if abg:
                 try:
-                    bi  = cbg if BACKGROUNDS[bgc] == "custom" else fetch_bg(BACKGROUNDS[bgc])
+                    bi = cbg if BACKGROUNDS[bgc] == "custom" else fetch_bg(BACKGROUNDS[bgc])
                     fim = composite_bg(ed, bi) if bi else ed
                 except Exception as e:
                     st.error(f"Fon: {e}")
                     fim = ed
             else:
                 fim = ed
-            st.markdown('<p style="text-align:center;font-size:.68rem;color:#555;'
-                        'letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem">Önizləmə</p>',
-                        unsafe_allow_html=True)
+            st.markdown(
+                '<p style="text-align:center;font-size:.68rem;color:#555;letter-spacing:.1em;'
+                'text-transform:uppercase;margin-bottom:.3rem">Önizləmə</p>',
+                unsafe_allow_html=True
+            )
             st.image(fim, use_container_width=True)
             st.caption(f"📐 {fim.width}×{fim.height} px")
 
-    b1 = st.button("✨  AI ilə 4× Keyfiyyəti Artır",
-                   disabled=not (up1 and api_ok and fim is not None), key="b1")
+    b1 = st.button(
+        "✨  AI ilə 4× Keyfiyyəti Artır",
+        disabled=not (up1 and api_ok and fim is not None),
+        key="b1"
+    )
     if b1 and fim:
         sb = pil_to_bytes(fim)
         hh = hashlib.md5(sb).hexdigest()
@@ -475,34 +448,45 @@ with tab1:
         else:
             st.balloons()
             if st.session_state.get(f"c_{hh}"):
-                st.markdown('<div style="background:#0a1520;border:1px solid #1a4a7a;border-radius:8px;'
-                            'padding:.35rem .9rem;font-size:.7rem;color:#5bb3ff;font-weight:600;'
-                            'display:inline-block;margin-bottom:.4rem">⚡ Cache</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div style="background:#0a1520;border:1px solid #1a4a7a;border-radius:8px;'
+                    'padding:.35rem .9rem;font-size:.7rem;color:#5bb3ff;font-weight:600;'
+                    'display:inline-block;margin-bottom:.4rem">⚡ Cache</div>',
+                    unsafe_allow_html=True
+                )
             st.session_state[f"c_{hh}"] = True
             st.success("🎉 Tamamlandı!")
             rp = Image.open(io.BytesIO(rb))
-            st.markdown('<div class="card"><div style="display:flex;align-items:center;'
-                        'justify-content:space-between;margin-bottom:1rem">'
-                        '<span style="font-family:\'Playfair Display\',serif;font-size:.95rem;'
-                        'color:#eee">Nəticə</span><span class="b-4x">4× Enhanced</span></div>',
-                        unsafe_allow_html=True)
+            st.markdown(
+                '<div class="card"><div style="display:flex;align-items:center;'
+                'justify-content:space-between;margin-bottom:1rem">'
+                '<span style="font-family:\'Playfair Display\',serif;font-size:.95rem;color:#eee">Nəticə</span>'
+                '<span class="b-4x">4× Enhanced</span></div>',
+                unsafe_allow_html=True
+            )
             c1, c2 = st.columns(2)
             with c1:
-                st.markdown('<p style="text-align:center"><span class="badge b-orig">REDAKTƏLİ</span></p>',
-                            unsafe_allow_html=True)
+                st.markdown('<p style="text-align:center"><span class="badge b-orig">REDAKTƏLİ</span></p>', unsafe_allow_html=True)
                 st.image(fim, use_container_width=True)
             with c2:
-                st.markdown('<p style="text-align:center"><span class="badge b-enh">4× AI</span></p>',
-                            unsafe_allow_html=True)
+                st.markdown('<p style="text-align:center"><span class="badge b-enh">4× AI</span></p>', unsafe_allow_html=True)
                 st.image(rp, use_container_width=True)
-            base_name = (up1.name or "image").rsplit(".", 1)[0]
             d1, d2 = st.columns(2)
+            # SƏBƏB: up1.name None ola bilər — .rsplit() xəta verər.
+            # Həll: up1.name or "image" ilə None yoxlaması əlavə edildi.
+            base_name = (up1.name or "image").rsplit(".", 1)[0]
             with d1:
-                st.download_button("⬇  Artırılmışı Endir", rb,
-                                   f"enhanced_{base_name}.png", "image/png", use_container_width=True)
+                st.download_button(
+                    "⬇  Artırılmışı Endir", rb,
+                    f"enhanced_{base_name}.png", "image/png",
+                    use_container_width=True
+                )
             with d2:
-                st.download_button("⬇  Redaktəlini Endir", sb,
-                                   f"edited_{base_name}.png", "image/png", use_container_width=True)
+                st.download_button(
+                    "⬇  Redaktəlini Endir", sb,
+                    f"edited_{base_name}.png", "image/png",
+                    use_container_width=True
+                )
             st.markdown('</div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════
@@ -517,15 +501,21 @@ with tab2:
     4️⃣ <b>"Ağıllı Sil"</b> düyməsini basın
     </div>""", unsafe_allow_html=True)
 
-    up2 = st.file_uploader("📸  Şəkil seçin (SAM üçün)",
-                           type=["jpg", "jpeg", "png", "webp"], key="u2")
+    up2 = st.file_uploader(
+        "📸  Şəkil seçin (SAM üçün)",
+        type=["jpg", "jpeg", "png", "webp"],
+        key="u2"
+    )
     if up2:
         ip = Image.open(up2).convert("RGB")
         iw, ih = ip.size
         sam_canvas(ip, key="s1")
-        cj = st.text_input("📍 Koordinatlar:",
-                           placeholder='[{"x":200,"y":150,"label":1}]',
-                           key="coords_s1", label_visibility="visible")
+        cj = st.text_input(
+            "📍 Koordinatlar:",
+            placeholder='[{"x":200,"y":150,"label":1}]',
+            key="coords_s1",
+            label_visibility="visible"
+        )
         st.caption("💡 Şəkilə kliklədikdən sonra koordinatlar burada görünür")
 
         bs = st.button("🧠  Ağıllı Sil", disabled=not api_ok, key="bs")
@@ -538,14 +528,15 @@ with tab2:
             if not cks:
                 cks = [{"x": iw // 2, "y": ih // 2, "label": 1}]
                 st.info(f"ℹ️  Mərkəz nöqtəsi istifadə edilir ({iw // 2},{ih // 2})")
-            ob  = pil_to_bytes(ip)
+            ob = pil_to_bytes(ip)
             pg2 = st.progress(0, "SAM-a göndərilir...")
             try:
                 resp = requests.post(
                     f"{API_URL}/sam-inpaint",
                     files={"image": ("img.png", ob, "image/png")},
                     data={"clicks": json.dumps(cks)},
-                    timeout=180, headers=HDR
+                    timeout=180,
+                    headers=HDR
                 )
                 pg2.progress(70, "SAM segmentasiya edir...")
                 try:
@@ -560,26 +551,25 @@ with tab2:
                         st.success(f"🎉 Tamamlandı! {'SAM ✅' if data.get('sam_used') else 'Fallback'}")
                         c1, c2, c3 = st.columns(3)
                         with c1:
-                            st.markdown('<p style="text-align:center"><span class="badge b-orig">ORİGİNAL</span></p>',
-                                        unsafe_allow_html=True)
+                            st.markdown('<p style="text-align:center"><span class="badge b-orig">ORİGİNAL</span></p>', unsafe_allow_html=True)
                             st.image(ip, use_container_width=True)
                         with c2:
                             if data.get("mask"):
-                                st.markdown('<p style="text-align:center"><span class="badge" '
-                                            'style="background:#1a3a6b;color:#88ccff;border:1px solid #2a5aab">'
-                                            'MASK</span></p>', unsafe_allow_html=True)
-                                st.image(Image.open(io.BytesIO(base64.b64decode(data["mask"]))),
-                                         use_container_width=True)
+                                st.markdown('<p style="text-align:center"><span class="badge" style="background:#1a3a6b;color:#88ccff;border:1px solid #2a5aab">MASK</span></p>', unsafe_allow_html=True)
+                                st.image(Image.open(io.BytesIO(base64.b64decode(data["mask"]))), use_container_width=True)
                         with c3:
-                            st.markdown('<p style="text-align:center"><span class="badge b-enh">NƏTİCƏ</span></p>',
-                                        unsafe_allow_html=True)
-                            st.image(Image.open(io.BytesIO(base64.b64decode(data["image"]))),
-                                     use_container_width=True)
+                            st.markdown('<p style="text-align:center"><span class="badge b-enh">NƏTİCƏ</span></p>', unsafe_allow_html=True)
+                            st.image(Image.open(io.BytesIO(base64.b64decode(data["image"]))), use_container_width=True)
+                        # SƏBƏB: up2.name None ola bilər.
+                        # Həll: up2.name or "image" ilə None yoxlaması əlavə edildi.
                         sam_base = (up2.name or "image").rsplit(".", 1)[0]
-                        st.download_button("⬇  Nəticəni Endir",
-                                           base64.b64decode(data["image"]),
-                                           f"sam_{sam_base}.png", "image/png",
-                                           use_container_width=True)
+                        st.download_button(
+                            "⬇  Nəticəni Endir",
+                            base64.b64decode(data["image"]),
+                            f"sam_{sam_base}.png",
+                            "image/png",
+                            use_container_width=True
+                        )
                     else:
                         pg2.progress(100, "Xəta!")
                         st.error(f"❌ {data.get('error', 'Naməlum xəta')}")
@@ -591,119 +581,67 @@ with tab2:
                 st.error("❌ Backend əlçatan deyil")
             except Exception as e:
                 pg2.progress(100, "Xəta!")
-                st.error(f"❌ {type(e).__name__}: {e}")
+                # SƏBƏB: type(e).name — Python-da belə atribut yoxdur.
+                # Həll: type(e)._name_ istifadə edilməlidir.
+                st.error(f"❌ {type(e)._name_}: {e}")
 
 # ══════════════════════════════════════════════════════════════════
-#  TAB 3 — ARXA FON SİL (YENİ)
+#  TAB 3 — VİDEO
 # ══════════════════════════════════════════════════════════════════
 with tab3:
-    st.markdown("""<div class="sam-tip">
-    ✂️ <b>Arxa Fon Silmə — rembg</b><br>
-    1️⃣ Şəkil yükləyin<br>
-    2️⃣ <b style="color:#4dff88">"Arxa Fonu Sil"</b> düyməsini basın<br>
-    3️⃣ Nəticəni şəffaf PNG kimi endirin
-    </div>""", unsafe_allow_html=True)
-
-    up_rb = st.file_uploader("📸  Şəkil seçin",
-                             type=["jpg", "jpeg", "png", "webp"], key="u_rb")
-    if up_rb:
-        orig_pil = Image.open(up_rb).convert("RGB")
-
-        col_l, col_r = st.columns(2)
-        with col_l:
-            st.markdown('<p style="text-align:center"><span class="badge b-orig">ORİGİNAL</span></p>',
-                        unsafe_allow_html=True)
-            st.image(orig_pil, use_container_width=True)
-            st.caption(f"📐 {orig_pil.width}×{orig_pil.height} px")
-
-        btn_rb = st.button("✂️  Arxa Fonu Sil",
-                           disabled=not api_ok, key="btn_rb")
-
-        if btn_rb:
-            buf = io.BytesIO()
-            orig_pil.save(buf, format="PNG")
-            img_bytes = buf.getvalue()
-
-            pg_rb = st.progress(0, "rembg-yə göndərilir...")
-            mb_rb = st.empty()
-            st_rb = [False]
-
-            def rb_spin():
-                msgs = ["🔄 Fon analiz edilir...", "✂️ Kəsilir...", "🎨 Şəffaflaşdırılır..."]
-                i = 0
-                while not st_rb[0]:
-                    mb_rb.markdown(f'<div class="spin-msg">{msgs[i % 3]}</div>',
-                                   unsafe_allow_html=True)
-                    time.sleep(1.5)
-                    i += 1
-
-            threading.Thread(target=rb_spin, daemon=True).start()
-            pg_rb.progress(30, "Emal edilir...")
-
-            result_bytes, err_msg = remove_bg_request(img_bytes, API_URL)
-
-            st_rb[0] = True
-            mb_rb.empty()
-
-            if err_msg:
-                # Xəta: "rembg xətası: [detal]" formatında göstər
-                pg_rb.progress(100, "Xəta!")
-                st.error(f"❌ {err_msg}")
-                st.info("💡 Colab-da `!pip install rembg onnxruntime` icra edib serveri yenidən başladın.")
-            else:
-                pg_rb.progress(100, "Hazır! 🎉")
-                st.balloons()
-                st.success("🎉 Arxa fon uğurla silindi!")
-
-                result_pil = Image.open(io.BytesIO(result_bytes)).convert("RGBA")
-                with col_r:
-                    st.markdown('<p style="text-align:center"><span class="badge b-enh">FON SİLİNMİŞ</span></p>',
-                                unsafe_allow_html=True)
-                    st.image(result_pil, use_container_width=True)
-                    st.caption(f"📐 {result_pil.width}×{result_pil.height} px · RGBA PNG")
-
-                rb_base = (up_rb.name or "image").rsplit(".", 1)[0]
-                st.download_button(
-                    "⬇  Şəffaf PNG kimi Endir",
-                    result_bytes,
-                    f"{rb_base}_no_bg.png",
-                    "image/png",
-                    use_container_width=True,
-                )
-
-# ══════════════════════════════════════════════════════════════════
-#  TAB 4 — VİDEO ARTIR
-# ══════════════════════════════════════════════════════════════════
-with tab4:
-    st.markdown('<div class="video-warn">⚠️ Video emalı bir neçə dəqiqə çəkə bilər.<br>'
-                'Emal zamanı pəncərəni bağlamayın!</div>', unsafe_allow_html=True)
-    up3 = st.file_uploader("🎬  Video seçin", type=["mp4", "mov", "avi", "mkv"], key="u3")
+    st.markdown(
+        '<div class="video-warn">⚠️ Video emalı bir neçə dəqiqə çəkə bilər.<br>'
+        'Emal zamanı pəncərəni bağlamayın!</div>',
+        unsafe_allow_html=True
+    )
+    up3 = st.file_uploader(
+        "🎬  Video seçin",
+        type=["mp4", "mov", "avi", "mkv"],
+        key="u3"
+    )
     if up3:
         st.video(up3)
-        st.markdown(f'<div style="font-size:.76rem;color:#666;padding:.3rem 0">🎬 '
-                    f'<span style="color:#bbb">{up3.name}</span> &nbsp; 📦 '
-                    f'<span style="color:#bbb">{up3.size / 1024 / 1024:.1f} MB</span></div>',
-                    unsafe_allow_html=True)
-    b3 = st.button("🎬  Video 4× Keyfiyyətini Artır",
-                   disabled=not (up3 and api_ok), key="b3")
+        st.markdown(
+            f'<div style="font-size:.76rem;color:#666;padding:.3rem 0">🎬 '
+            f'<span style="color:#bbb">{up3.name}</span> &nbsp; 📦 '
+            f'<span style="color:#bbb">{up3.size / 1024 / 1024:.1f} MB</span></div>',
+            unsafe_allow_html=True
+        )
+    b3 = st.button(
+        "🎬  Video 4× Keyfiyyətini Artır",
+        disabled=not (up3 and api_ok),
+        key="b3"
+    )
     if b3 and up3:
         vb = up3.read()
-        st.markdown('<div class="video-warn">🔄 Video emal edilir — pəncərəni bağlamayın!</div>',
-                    unsafe_allow_html=True)
+        st.markdown(
+            '<div class="video-warn">🔄 Video emal edilir — pəncərəni bağlamayın!</div>',
+            unsafe_allow_html=True
+        )
         p3 = st.progress(0)
         m3 = st.empty()
         s3 = [False]
-        vm = ["🎬 Kadrlar ayrılır...", "⚡ GPU emal edir...", "🔄 Video yığılır...", "✨ Möcüzə..."]
+        vm = [
+            "🎬 Kadrlar ayrılır...",
+            "⚡ GPU emal edir...",
+            "🔄 Video yığılır...",
+            "✨ Möcüzə..."
+        ]
 
         def vsp():
             i = 0
             while not s3[0]:
-                m3.markdown(f'<div class="spin-msg">{vm[i % 4]}</div>', unsafe_allow_html=True)
+                m3.markdown(
+                    f'<div class="spin-msg">{vm[i % 4]}</div>',
+                    unsafe_allow_html=True
+                )
                 time.sleep(3)
                 i += 1
 
         threading.Thread(target=vsp, daemon=True).start()
         p3.progress(10, "Video göndərilir...")
+        # SƏBƏB: up3.name None ola bilər.
+        # Həll: up3.name or "video.mp4" ilə None yoxlaması əlavə edildi.
         video_fname = up3.name or "video.mp4"
         rb3, mt3, er3 = enhance_video_cached(vb, video_fname, API_URL)
         s3[0] = True
@@ -714,8 +652,14 @@ with tab4:
         else:
             p3.progress(100, "Video hazır! 🎉")
             st.balloons()
-            st.success(f"🎉 {mt3.get('original','?')} → {mt3.get('enhanced','?')} | {mt3.get('frames','?')} kadr")
+            st.success(
+                f"🎉 {mt3.get('original', '?')} → {mt3.get('enhanced', '?')} | {mt3.get('frames', '?')} kadr"
+            )
             video_base = video_fname.rsplit(".", 1)[0]
-            st.download_button("⬇  4× Videonu Endir", rb3,
-                               f"enhanced_{video_base}.mp4", "video/mp4",
-                               use_container_width=True)
+            st.download_button(
+                "⬇  4× Videonu Endir",
+                rb3,
+                f"enhanced_{video_base}.mp4",
+                "video/mp4",
+                use_container_width=True
+            )
